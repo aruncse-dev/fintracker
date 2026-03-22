@@ -1,0 +1,7 @@
+.DS_Store
+.clasprc.json
+node_modules/
+.claude
+web/dist/
+web/.env
+*.xlsx
