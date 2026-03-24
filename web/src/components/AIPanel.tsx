@@ -1,12 +1,31 @@
 import { useState, useRef, useEffect } from 'react'
 import { useStore } from '../store'
-import { MNS, ACCOUNTS, CC_MODES, OTHER_CR } from '../constants'
+import { MNS, ACCOUNTS, CC_MODES, OTHER_CR, CATEGORIES, INCOME_CATS, ALL_MODES } from '../constants'
 import { catMap, sumType, budgetSummary, acctFlows, INR } from '../utils'
 import { api } from '../api'
 
 interface Msg { role: 'u' | 'a'; text: string }
 
 interface Props { open: boolean; onClose: () => void; onSaved: () => void }
+
+function parseDirectCommand(raw: string) {
+  if (!/^add_transaction\s*\(/i.test(raw.trim())) return null
+  const params: Record<string, string> = {}
+  for (const [, k, v] of raw.matchAll(/(\w+)\s*=\s*"?([^",)]+)"?/gi)) {
+    params[k.toLowerCase()] = v.trim()
+  }
+  const amt = parseFloat(params.amount ?? params.amt ?? '0')
+  if (!amt) return null
+  const rawType = (params.type ?? 'expense').toLowerCase()
+  const type = rawType === 'income' ? 'Income' : rawType === 'transfer' ? 'Transfer' : 'Expense'
+  const rawCat = params.category ?? params.cat ?? ''
+  const allCats: readonly string[] = type === 'Income' ? INCOME_CATS : CATEGORIES
+  const cat = allCats.find(c => c.toLowerCase() === rawCat.toLowerCase()) ?? (type === 'Income' ? 'Other Income' : 'Others')
+  const rawMode = params.mode ?? 'cash'
+  const mode = (ALL_MODES as readonly string[]).find(m => m.toLowerCase() === rawMode.toLowerCase()) ?? 'Cash'
+  const desc = params.desc ?? params.description ?? cat
+  return { amt, desc, cat, type, mode }
+}
 
 function todayStr() {
   const d = new Date()
@@ -32,6 +51,18 @@ export default function AIPanel({ open, onClose, onSaved }: Props) {
     setInp('')
     setMsgs(m => [...m, { role: 'u', text }])
     setBusy(true)
+
+    const direct = parseDirectCommand(text)
+    if (direct) {
+      try {
+        await api.addRow({ month: state.month, year: state.year, date: todayStr(), desc: direct.desc, a: direct.amt, c: direct.cat, t: direct.type, m: direct.mode, notes: '' })
+        setMsgs(m => [...m, { role: 'a', text: `✅ Added <b>${INR(direct.amt)}</b> → ${direct.cat} <span style="opacity:.7;font-size:11px">(${direct.type} · ${direct.mode} · ${todayStr()})</span>` }])
+        onSaved()
+      } catch (e) {
+        setMsgs(m => [...m, { role: 'a', text: '⚠ ' + (e instanceof Error ? e.message : 'Error') }])
+      } finally { setBusy(false) }
+      return
+    }
 
     const cm = catMap(state.rows, state.budget)
     const { totalBudget, totalSpent, ovCount } = budgetSummary(state.budget, cm)
