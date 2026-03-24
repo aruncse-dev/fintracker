@@ -130,7 +130,7 @@ function Inner() {
         />
       )}
 
-      <AIPanel open={aiOpen} onClose={() => setAiOpen(false)} />
+      <AIPanel open={aiOpen} onClose={() => setAiOpen(false)} onSaved={() => loadMonth(state.month, state.year)} />
       <InstallBanner />
     </div>
   )

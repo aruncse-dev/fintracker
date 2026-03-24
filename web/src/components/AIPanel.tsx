@@ -1,17 +1,22 @@
 import { useState, useRef, useEffect } from 'react'
 import { useStore } from '../store'
-import { CATEGORIES, INCOME_CATS, ALL_MODES } from '../constants'
-import { catMap, sumType, budgetSummary } from '../utils'
+import { CATEGORIES, INCOME_CATS, ALL_MODES, MNS } from '../constants'
+import { catMap, sumType, budgetSummary, INR } from '../utils'
 import { api } from '../api'
 
 interface Msg { role: 'u' | 'a'; text: string }
 
-interface Props { open: boolean; onClose: () => void }
+interface Props { open: boolean; onClose: () => void; onSaved: () => void }
 
-export default function AIPanel({ open, onClose }: Props) {
+function todayStr() {
+  const d = new Date()
+  return `${String(d.getDate()).padStart(2,'0')}-${MNS[d.getMonth()]}-${String(d.getFullYear()).slice(2)}`
+}
+
+export default function AIPanel({ open, onClose, onSaved }: Props) {
   const { state } = useStore()
   const [msgs, setMsgs] = useState<Msg[]>([
-    { role: 'a', text: '👋 Hi! Ask me about your finances or type a transaction like "500 vegetables"' }
+    { role: 'a', text: '👋 Hi! I can:<br/>• <b>Add transactions</b> — type <b>500 vegetables</b> or <b>5000 salary</b><br/>• <b>Analyse expenses</b> — ask <b>where am I overspending?</b> or <b>how are my savings?</b>' }
   ])
   const [inp, setInp] = useState('')
   const [busy, setBusy] = useState(false)
@@ -45,7 +50,8 @@ export default function AIPanel({ open, onClose }: Props) {
       `Top spending: ${JSON.stringify(ctx.topCats)}.`,
       `Budget vs actual (overspent): ${JSON.stringify(ctx.overspent)}.`,
       `Valid expense categories: ${CATEGORIES.join(', ')}. Income categories: ${INCOME_CATS.join(', ')}. Valid modes: ${ALL_MODES.join(', ')}.`,
-      'If user input looks like a transaction (has an amount + any hint of category/description), ALWAYS return ONLY raw JSON with no markdown: {"entry":{"amt":N,"desc":"...","cat":"<exact category name>","type":"Expense or Income","mode":"Cash"}}. Otherwise reply in plain text under 120 words.',
+      'If user input looks like a transaction (has an amount + any hint of category/description), ALWAYS return ONLY raw JSON with no markdown: {"entry":{"amt":N,"desc":"...","cat":"<exact category name>","type":"Expense or Income","mode":"Cash"}}.',
+      'If user asks about spending analysis, budget status, savings, or financial advice — reply in plain text under 150 words with specific numbers from the context. Be direct and actionable.',
     ].join(' ')
 
     try {
@@ -53,7 +59,19 @@ export default function AIPanel({ open, onClose }: Props) {
       try {
         const j = JSON.parse(reply)
         if (j.entry) {
-          setMsgs(m => [...m, { role: 'a', text: `Got it! ₹${j.entry.amt} → ${j.entry.cat}. Open the + button to add it.` }])
+          const e = j.entry
+          await api.addRow({
+            month: state.month, year: state.year,
+            date: todayStr(),
+            desc: e.desc,
+            a: e.amt,
+            c: e.cat,
+            t: e.type,
+            m: e.mode || 'Cash',
+            notes: ''
+          })
+          setMsgs(m => [...m, { role: 'a', text: `✅ Added <b>${INR(e.amt)}</b> → ${e.cat} <span style="opacity:.7;font-size:11px">(${e.type} · ${e.mode || 'Cash'} · ${todayStr()})</span>` }])
+          onSaved()
           return
         }
       } catch {}
@@ -82,7 +100,7 @@ export default function AIPanel({ open, onClose }: Props) {
           className="ai-inp" value={inp}
           onChange={e => setInp(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && send()}
-          placeholder="Ask anything or type a transaction…"
+          placeholder="e.g. 500 vegetables or 5000 salary…"
         />
         <button className="btn btn-sm" onClick={send} disabled={busy}>Send</button>
       </div>
