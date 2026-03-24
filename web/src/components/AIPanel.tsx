@@ -2,24 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useStore } from '../store'
 import { CATEGORIES, INCOME_CATS, ALL_MODES } from '../constants'
 import { catMap, sumType, budgetSummary } from '../utils'
-
-const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY as string
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_KEY}`
-
-async function callGemini(system: string, userText: string): Promise<string> {
-  const res = await fetch(GEMINI_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: system }] },
-      contents: [{ role: 'user', parts: [{ text: userText }] }],
-      generationConfig: { maxOutputTokens: 300, temperature: 0.7 },
-    }),
-  })
-  const json = await res.json()
-  if (json.error) throw new Error(json.error.message)
-  return json.candidates?.[0]?.content?.parts?.[0]?.text || ''
-}
+import { api } from '../api'
 
 interface Msg { role: 'u' | 'a'; text: string }
 
@@ -66,7 +49,7 @@ export default function AIPanel({ open, onClose }: Props) {
     ].join(' ')
 
     try {
-      const reply = await callGemini(system, text)
+      const reply = await api.gemini(system, text)
       try {
         const j = JSON.parse(reply)
         if (j.entry) {

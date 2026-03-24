@@ -71,6 +71,13 @@ function setApiToken(token) {
   return 'API_TOKEN set';
 }
 
+// Run once in the Apps Script editor to store your Gemini key securely:
+//   setGeminiKey('AIzaSy...')
+function setGeminiKey(key) {
+  PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', key);
+  return 'GEMINI_KEY set';
+}
+
 function setSheetId(id) {
   PropertiesService.getScriptProperties().setProperty('SHEET_ID', id);
   return 'SHEET_ID set';
@@ -121,6 +128,8 @@ function _handlePost(body) {
     return saveBudget(_defaultBudgets()) && _defaultBudgets();
   if (action === 'configure')
     return _configure(body.sheetId);
+  if (action === 'gemini')
+    return _geminiProxy(body.system, body.prompt);
   throw new Error('Unknown POST action: ' + action);
 }
 
@@ -367,6 +376,26 @@ function saveAccountOpeningBalances(data) {
   sh.getRange(2, 1, ACCT_NAMES.length, 1).setHorizontalAlignment('left');
   sh.setRowHeightsForced(2, ACCT_NAMES.length, 24);
   return true;
+}
+
+// ── GEMINI PROXY ──────────────────────────────────────────────────────────────
+function _geminiProxy(system, prompt) {
+  const key = PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
+  if (!key) throw new Error('GEMINI_KEY not set. Run setGeminiKey("your-key") in the Apps Script editor.');
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + key;
+  const res = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify({
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: 300, temperature: 0.7 }
+    }),
+    muteHttpExceptions: true
+  });
+  const json = JSON.parse(res.getContentText());
+  if (json.error) throw new Error(json.error.message);
+  return json.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
 // ── DEFAULTS ──────────────────────────────────────────────────────────────────
