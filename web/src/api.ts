@@ -55,5 +55,5 @@ export const api = {
   configure:     (sheetId: string)              => post<boolean>({ action: 'configure', sheetId }),
   ensureMonth:   (month: string, year: string)  => post<boolean>({ action: 'ensureMonth', month, year }),
   resetBudget:   ()                             => post<Budget>({ action: 'resetBudget' }),
-  gemini:        (system: string, prompt: string) => post<string>({ action: 'gemini', system, prompt }),
+  gemini:        (system: string, prompt: string, forceTool?: boolean) => post<string>({ action: 'gemini', system, prompt, forceTool }),
 };

@@ -129,7 +129,7 @@ function _handlePost(body) {
   if (action === 'configure')
     return _configure(body.sheetId);
   if (action === 'gemini')
-    return _geminiProxy(body.system, body.prompt);
+    return _geminiProxy(body.system, body.prompt, body.forceTool === true);
   throw new Error('Unknown POST action: ' + action);
 }
 
@@ -384,7 +384,7 @@ function setGroqKey(key) {
   return 'GROQ_KEY set';
 }
 
-function _geminiProxy(system, prompt) {
+function _geminiProxy(system, prompt, forceTool) {
   const key = PropertiesService.getScriptProperties().getProperty('GROQ_KEY');
   if (!key) throw new Error('GROQ_KEY not set. Run setGroqKey("your-key") in the Apps Script editor.');
 
@@ -427,7 +427,7 @@ function _geminiProxy(system, prompt) {
         { role: 'user',   content: prompt }
       ],
       tools: tools,
-      tool_choice: 'auto',
+      tool_choice: forceTool ? 'required' : 'none',
       max_tokens: 400,
       temperature: 0.3
     }),

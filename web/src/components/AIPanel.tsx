@@ -43,18 +43,22 @@ export default function AIPanel({ open, onClose, onSaved }: Props) {
       overspent: Object.entries(state.budget).filter(([c,b])=>b>0&&(cm[c]||0)>b).map(([c,b])=>({c,over:Math.round((cm[c]||0)-b)})),
       totalBudget, totalSpent, ovCount,
     }
+    // Heuristic: if the input has a number it could be a transaction; otherwise it's a question
+    const looksLikeTransaction = /\d/.test(text)
+
     const system = [
       'You are a concise personal finance assistant for a family in India.',
       'Monthly income: ₹2,38,000. Fixed commitments: Loan EMI ₹56,000, Jewel Loan ₹30,000, Insurance ₹9,700, SIP ₹11,500, Rent ₹5,500, Vijaya Amma ₹6,500, Staff Salary ₹18,000.',
       `Current month (${ctx.month}): Income ₹${ctx.inc}, Expenses ₹${ctx.exp}.`,
       `Top spending: ${JSON.stringify(ctx.topCats)}.`,
       `Budget vs actual (overspent): ${JSON.stringify(ctx.overspent)}.`,
-      'When user describes a transaction (amount + item), call the add_transaction tool with the right category.',
-      'For spending analysis, budget questions, or advice — reply in plain text under 150 words with specific numbers. Be direct and actionable.',
+      looksLikeTransaction
+        ? 'The user is recording a transaction. Call add_transaction with the correct category, type, and mode. ALWAYS call the tool — do NOT reply in text.'
+        : 'The user is asking a question or requesting analysis. NEVER call add_transaction. Reply in plain text under 150 words with specific numbers from the context. Be direct and actionable.',
     ].join(' ')
 
     try {
-      const reply = await api.gemini(system, text)
+      const reply = await api.gemini(system, text, looksLikeTransaction)
       try {
         const j = JSON.parse(reply)
         if (j.__tool === 'add_transaction') {
