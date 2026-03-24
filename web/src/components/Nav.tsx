@@ -16,7 +16,7 @@ export default function Nav({ month, year, status, loading, onPrev, onNext, onSy
     <nav className="nav">
       {/* Brand — left */}
       <span className="nav-b" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <img src="./logo.svg" width="32" height="32" alt="FinTracker" style={{borderRadius:8,flexShrink:0,objectFit:'contain',background:'#fff'}} />
+        <img src="./apple-touch-icon.png" width="30" height="30" alt="FinTracker" style={{borderRadius:8,flexShrink:0,objectFit:'contain',background:'#1E3A8A'}} />
         FinTracker
       </span>
 
