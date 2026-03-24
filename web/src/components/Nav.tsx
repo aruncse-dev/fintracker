@@ -16,7 +16,7 @@ export default function Nav({ month, year, status, loading, onPrev, onNext, onSy
     <nav className="nav">
       {/* Brand — left */}
       <span className="nav-b" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <img src="./logo.svg" width="28" height="28" alt="FinTracker" style={{borderRadius:7,flexShrink:0,objectFit:'cover'}} />
+        <img src="./logo.svg" width="32" height="32" alt="FinTracker" style={{borderRadius:8,flexShrink:0,objectFit:'contain',background:'#fff'}} />
         FinTracker
       </span>
 
