@@ -20,7 +20,7 @@ body {
 }
 
 /* NAV */
-.nav { background: var(--navy-dark); height: calc(52px + env(safe-area-inset-top)); display: flex; align-items: flex-end; justify-content: space-between; padding: env(safe-area-inset-top) 14px 0; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(30,27,75,.35); gap: 10px; will-change: transform; transform: translateZ(0); }
+.nav { background: var(--navy-dark); height: calc(52px + env(safe-area-inset-top)); display: flex; align-items: center; justify-content: space-between; padding: env(safe-area-inset-top) 14px 0; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(30,27,75,.35); gap: 10px; will-change: transform; transform: translateZ(0); }
 .nav-b { color: #fff; font-weight: 700; font-size: 12px; letter-spacing: 0; white-space: nowrap; }
 .nav-b em { color: #A5B4FC; font-style: normal; }
 .nav-month { display: flex; align-items: center; gap: 6px; flex: 1; justify-content: center; }
