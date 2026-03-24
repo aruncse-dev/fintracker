@@ -46,14 +46,14 @@ export default function Credits() {
           <div className="cc-a mono" style={{ color: 'var(--red)' }}>{INR(overall)}</div>
           <div className="cc-d">All credit accounts</div>
         </div>
-        <div className="card cp" style={{ borderTop: '3px solid #8C52FF' }}>
+        <div className="card cp" style={{ borderTop: '3px solid #2563EB' }}>
           <div className="cc-n">CC Outstanding</div>
-          <div className="cc-a mono" style={{ color: '#8C52FF' }}>{INR(ccNet)}</div>
+          <div className="cc-a mono" style={{ color: '#2563EB' }}>{INR(ccNet)}</div>
           <div className="cc-d">ICICI + HDFC</div>
         </div>
-        <div className="card cp" style={{ borderTop: '3px solid #2A8C9A' }}>
+        <div className="card cp" style={{ borderTop: '3px solid #0891B2' }}>
           <div className="cc-n">Other Credits</div>
-          <div className="cc-a mono" style={{ color: '#2A8C9A' }}>{INR(otherTotal)}</div>
+          <div className="cc-a mono" style={{ color: '#0891B2' }}>{INR(otherTotal)}</div>
           <div className="cc-d">Bommi + Ramya + Others</div>
         </div>
       </div>

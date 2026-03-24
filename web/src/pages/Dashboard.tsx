@@ -46,8 +46,8 @@ export default function Dashboard({ onAddClick }: Props) {
 
   const cashBankExp = rows.filter(r => (ACCOUNTS as readonly string[]).includes(r.m) && r.t==='Expense').reduce((s,r)=>s+r.a,0)
   const spendData = [
-    {label:'Credit Cards', v:cc,  col:'#8C52FF'},
-    {label:'Other Credits',v:ocr, col:'#2A8C9A'},
+    {label:'Credit Cards', v:cc,  col:'#2563EB'},
+    {label:'Other Credits',v:ocr, col:'#0891B2'},
     {label:'Cash / Bank',  v:cashBankExp, col:'#22C55E'},
   ].filter(d=>d.v>0)
   const incExpData = [
@@ -75,8 +75,8 @@ export default function Dashboard({ onAddClick }: Props) {
       <div className="kpis" style={{marginTop:12}}>
         <div className="kpi"><div className="kpi-l">Income</div><div className="kpi-v mono" style={{color:'var(--green)'}}>+{INR(inc)}</div></div>
         <div className="kpi"><div className="kpi-l">Expenses</div><div className="kpi-v mono" style={{color:'var(--red)'}}>−{INR(exp)}</div></div>
-        <div className="kpi"><div className="kpi-l">Credit Cards</div><div className="kpi-v mono" style={{color:'#8C52FF'}}>−{INR(cc)}</div></div>
-        <div className="kpi"><div className="kpi-l">Other Credits</div><div className="kpi-v mono" style={{color:'#2A8C9A'}}>−{INR(ocr)}</div></div>
+        <div className="kpi"><div className="kpi-l">Credit Cards</div><div className="kpi-v mono" style={{color:'#2563EB'}}>−{INR(cc)}</div></div>
+        <div className="kpi"><div className="kpi-l">Other Credits</div><div className="kpi-v mono" style={{color:'#0891B2'}}>−{INR(ocr)}</div></div>
       </div>
 
       {/* Balance hero */}
