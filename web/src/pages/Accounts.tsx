@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store'
-import { acctFlows, INR, fd, catIcon } from '../utils'
+import { acctFlows, INR, catIcon } from '../utils'
 import { ACCOUNTS, CC_MODES } from '../constants'
 import { api } from '../api'
 
@@ -34,14 +34,6 @@ export default function Accounts({ showStatus }: Props) {
   const ccRows = Object.entries(ccCatMap).sort((a,b)=>(b[1].ICICI+b[1].HDFC)-(a[1].ICICI+a[1].HDFC))
   const icTotal = ccRows.reduce((s,[,v])=>s+v.ICICI,0)
   const hdTotal = ccRows.reduce((s,[,v])=>s+v.HDFC,0)
-
-  // Account transactions: direct account-mode rows + incoming transfers from non-accounts (e.g. ICICI cash advance → Cash)
-  const acctTxns = rows.filter(r =>
-    (ACCOUNTS as readonly string[]).includes(r.m) ||
-    (r.t === 'Transfer' &&
-     !(ACCOUNTS as readonly string[]).includes(r.m) &&
-     (ACCOUNTS as readonly string[]).some(a => r.notes?.startsWith('→' + a)))
-  )
 
   return (
     <div className="pg">
@@ -153,54 +145,6 @@ export default function Accounts({ showStatus }: Props) {
         </>
       )}
 
-      <div className="sec"><div className="sec-h">📋 Account Transactions</div></div>
-
-      {acctTxns.length === 0 ? (
-        <div className="lb">No account transactions</div>
-      ) : (
-        <>
-          <div className="txn-cards">
-            {acctTxns.map(r => {
-              const isAcctMode = (ACCOUNTS as readonly string[]).includes(r.m)
-              const isIncoming = !isAcctMode && r.t === 'Transfer' // cash advance from CC/credit into account
-              const isIn = r.t === 'Income' || isIncoming
-              const isTr = r.t === 'Transfer' && isAcctMode
-              const col = isIn ? 'var(--green)' : isTr ? 'var(--purple)' : 'var(--red)'
-              const sign = isIn ? '+' : isTr ? '⇄' : '−'
-              const label = isIncoming ? `${r.m} → Acct` : r.m
-              return (
-                <div key={r.id} className="txn-card">
-                  <div className="txn-card-top">
-                    <span className="txn-card-desc">{r.desc}</span>
-                    <span className="txn-card-amt mono" style={{color:col}}>{sign}{INR(r.a)}</span>
-                  </div>
-                  <div className="txn-card-bot">
-                    <span className="txn-card-date">{fd(r.date)}</span>
-                    <span className={`badge ${isIn?'bg':isTr?'bp':'br'}`} style={{fontSize:10}}>{isIncoming ? 'Cash Advance' : r.t}</span>
-                    <span className="badge bn" style={{fontSize:10}}>{label}</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          <div className="tw txn-table">
-            <table>
-              <thead><tr><th>Date</th><th>Description</th><th>Type</th><th>Account</th><th className="ta-r">Amount</th></tr></thead>
-              <tbody>
-                {acctTxns.map(r => {
-                  const isAcctMode = (ACCOUNTS as readonly string[]).includes(r.m)
-                  const isIncoming = !isAcctMode && r.t === 'Transfer'
-                  const isIn = r.t === 'Income' || isIncoming
-                  const isTr = r.t === 'Transfer' && isAcctMode
-                  const col = isIn ? 'var(--green)' : isTr ? 'var(--purple)' : 'var(--red)'
-                  const sign = isIn ? '+' : isTr ? '⇄' : '−'
-                  return <tr key={r.id}><td>{fd(r.date)}</td><td>{r.desc}</td><td><span className={`badge ${isIn?'bg':isTr?'bp':'br'}`}>{isIncoming ? 'Cash Advance' : r.t}</span></td><td><span className="badge bn">{isIncoming ? `${r.m} → Acct` : r.m}</span></td><td className="mono ta-r" style={{color:col}}>{sign}{INR(r.a)}</td></tr>
-                })}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
     </div>
   )
 }

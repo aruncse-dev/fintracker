@@ -1,6 +1,6 @@
 import { useStore } from '../store'
 import { sumType, sumCC, sumOtherCr, catMap, budgetSummary, acctFlows, INR } from '../utils'
-import { ACCOUNTS } from '../constants'
+import { ACCOUNTS, CC_MODES, OTHER_CR, CR_COLORS, ALL_CR } from '../constants'
 
 function svgDonut(data: {label:string;v:number;col:string}[], size: number) {
   const total = data.reduce((s,d)=>s+d.v,0)
@@ -18,6 +18,8 @@ function svgDonut(data: {label:string;v:number;col:string}[], size: number) {
   return <svg width={size} height={size} style={{transform:'rotate(-90deg)',flexShrink:0}}>{paths}</svg>
 }
 
+const ACCT_COLORS = ['var(--gm)', 'var(--navy)', 'var(--amber)']
+
 interface Props { onAddClick: () => void }
 
 export default function Dashboard({ onAddClick }: Props) {
@@ -32,8 +34,8 @@ export default function Dashboard({ onAddClick }: Props) {
   const ocr = sumOtherCr(rows)
   const flows = acctFlows(rows, openingBal)
   const totalSavings = ACCOUNTS.reduce((s,a) => s + (flows[a]?.current||0), 0)
-  const monthNet = inc - exp
   const surplus = inc - exp
+  const totalOutstanding = rows.filter(r => (ALL_CR as readonly string[]).includes(r.m)).reduce((s,r) => s + r.a, 0)
   const cm = catMap(rows, budget)
   const { totalBudget, totalSpent, ovCount, totalOver, totalPct, tCol } = budgetSummary(budget, cm)
 
@@ -52,6 +54,11 @@ export default function Dashboard({ onAddClick }: Props) {
     {label:'Income', v:inc, col:'#22C55E'},
     {label:'Expense',v:exp, col:'#EF4444'},
   ].filter(d=>d.v>0)
+
+  const crTotals: Record<string,number> = {}
+  ;[...CC_MODES, ...OTHER_CR].forEach(m => {
+    crTotals[m] = rows.filter(r => r.m === m).reduce((s,r) => s + r.a, 0)
+  })
 
   return (
     <div className="pg">
@@ -78,23 +85,50 @@ export default function Dashboard({ onAddClick }: Props) {
         <div className="hero-a mono" style={{color: totalSavings>=0?'var(--green)':'var(--red)'}}>
           {totalSavings<0?'−':''}{INR(Math.abs(totalSavings))}
         </div>
-        <div className="hero-s">
-          This month: {monthNet>=0?'+':'−'}{INR(Math.abs(monthNet))} · Opening: {INR(ACCOUNTS.reduce((s,a)=>s+(openingBal[a]||0),0))}
-        </div>
+        {surplus !== 0 && (
+          <div className="hero-s">
+            {surplus>0?'Surplus':'Deficit'}: {surplus>=0?'+':'−'}{INR(Math.abs(surplus))} this month
+          </div>
+        )}
       </div>
 
-      {/* Surplus */}
-      {surplus > 0 && (
-        <div className="card cp" style={{borderLeft:'4px solid var(--gm)',marginBottom:12}}>
-          <div style={{fontSize:11,fontWeight:600,color:'var(--muted)',textTransform:'uppercase',letterSpacing:.5,marginBottom:3}}>💡 Month Surplus</div>
-          <div className="mono" style={{fontSize:20,fontWeight:700,color:'var(--green)'}}>+{INR(surplus)}</div>
-          <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>Income − Expenses</div>
-        </div>
+      {/* Account Balances */}
+      <div className="sec" style={{marginBottom:6}}>
+        <span className="sec-h">Account Balances</span>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7,marginBottom:12}}>
+        {ACCOUNTS.map((acc, i) => {
+          const { current } = flows[acc] || { current: 0 }
+          return (
+            <div key={acc} className="card" style={{borderTop:`3px solid ${ACCT_COLORS[i]}`,padding:'10px 10px'}}>
+              <div style={{fontSize:10,fontWeight:600,color:'var(--muted)',marginBottom:5,textTransform:'uppercase',letterSpacing:.4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{acc}</div>
+              <div className="mono" style={{fontSize:14,fontWeight:700,color:current>=0?'var(--green)':'var(--red)'}}>{current<0?'−':''}{INR(Math.abs(current))}</div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Credit Outstanding */}
+      {totalOutstanding > 0 && (
+        <>
+          <div className="sec" style={{marginBottom:6}}>
+            <span className="sec-h">Credit Outstanding</span>
+            <span className="mono" style={{fontSize:11,fontWeight:700,color:'var(--red)'}}>−{INR(totalOutstanding)}</span>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:7,marginBottom:12}}>
+            {[...CC_MODES, ...OTHER_CR].filter(m => crTotals[m] > 0).map(m => (
+              <div key={m} className="card" style={{borderTop:`3px solid ${CR_COLORS[m]}`,padding:'10px 10px'}}>
+                <div style={{fontSize:10,fontWeight:600,color:'var(--muted)',marginBottom:5,textTransform:'uppercase',letterSpacing:.4}}>{m}</div>
+                <div className="mono" style={{fontSize:14,fontWeight:700,color:CR_COLORS[m]}}>−{INR(crTotals[m])}</div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Budget summary card */}
       {Object.keys(budget).length > 0 && (
-        <div className="card cp" style={{marginBottom:12,borderLeft:`4px solid ${tCol}`,cursor:'pointer'}}>
+        <div className="card cp" style={{marginBottom:12,borderLeft:`4px solid ${tCol}`}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:7}}>
             <span style={{fontSize:12,fontWeight:700}}>📦 Total Budget</span>
             <span className="mono" style={{fontSize:12,fontWeight:700,color:totalOver?'var(--red)':'var(--green)'}}>{INR(totalSpent)} / {INR(totalBudget)}</span>
