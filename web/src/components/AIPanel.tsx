@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useStore } from '../store'
-import { MNS } from '../constants'
-import { catMap, sumType, budgetSummary, INR } from '../utils'
+import { MNS, ACCOUNTS, CC_MODES, OTHER_CR } from '../constants'
+import { catMap, sumType, budgetSummary, acctFlows, INR } from '../utils'
 import { api } from '../api'
 
 interface Msg { role: 'u' | 'a'; text: string }
@@ -35,12 +35,19 @@ export default function AIPanel({ open, onClose, onSaved }: Props) {
 
     const cm = catMap(state.rows, state.budget)
     const { totalBudget, totalSpent, ovCount } = budgetSummary(state.budget, cm)
+    const flows = acctFlows(state.rows, state.openingBal)
     const ctx = {
       month: state.month + ' ' + state.year,
       inc: Math.round(sumType(state.rows, 'Income')),
       exp: Math.round(sumType(state.rows, 'Expense')),
-      topCats: Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([c,v])=>({c,v:Math.round(v)})),
-      overspent: Object.entries(state.budget).filter(([c,b])=>b>0&&(cm[c]||0)>b).map(([c,b])=>({c,over:Math.round((cm[c]||0)-b)})),
+      allCats: Object.entries(cm).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1])
+        .map(([c,v])=>({ c, spent: Math.round(v), budget: state.budget[c]||0 })),
+      overspent: Object.entries(state.budget).filter(([c,b])=>b>0&&(cm[c]||0)>b)
+        .map(([c,b])=>({c, budget: b, spent: Math.round(cm[c]||0), over: Math.round((cm[c]||0)-b)})),
+      accounts: ACCOUNTS.map(a => ({ a, bal: Math.round(flows[a]?.current||0) })),
+      credits: [...CC_MODES, ...OTHER_CR].map(m => ({
+        m, outstanding: Math.round(state.rows.filter(r=>r.m===m).reduce((s,r)=>s+r.a,0))
+      })).filter(x => x.outstanding > 0),
       totalBudget, totalSpent, ovCount,
     }
     // Heuristic: if the input has a number it could be a transaction; otherwise it's a question
@@ -50,8 +57,10 @@ export default function AIPanel({ open, onClose, onSaved }: Props) {
       'You are a concise personal finance assistant for a family in India.',
       'Monthly income: ₹2,38,000. Fixed commitments: Loan EMI ₹56,000, Jewel Loan ₹30,000, Insurance ₹9,700, SIP ₹11,500, Rent ₹5,500, Vijaya Amma ₹6,500, Staff Salary ₹18,000.',
       `Current month (${ctx.month}): Income ₹${ctx.inc}, Expenses ₹${ctx.exp}.`,
-      `Top spending: ${JSON.stringify(ctx.topCats)}.`,
-      `Budget vs actual (overspent): ${JSON.stringify(ctx.overspent)}.`,
+      `All category spending (spent/budget): ${JSON.stringify(ctx.allCats)}.`,
+      `Overspent: ${JSON.stringify(ctx.overspent)}.`,
+      `Account balances: ${JSON.stringify(ctx.accounts)}.`,
+      `Credit outstanding: ${JSON.stringify(ctx.credits)}.`,
       looksLikeTransaction
         ? 'The user is recording a transaction. Call add_transaction with the correct category, type, and mode. ALWAYS call the tool — do NOT reply in text.'
         : 'The user is asking a question or requesting analysis. NEVER call add_transaction. Reply in plain text under 150 words with specific numbers from the context. Be direct and actionable.',
