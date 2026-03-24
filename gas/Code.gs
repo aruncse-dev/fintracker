@@ -378,7 +378,7 @@ function saveAccountOpeningBalances(data) {
   return true;
 }
 
-// ── AI PROXY (Groq — llama-3.1-8b-instant) ───────────────────────────────────
+// ── AI PROXY (Groq — llama-3.1-8b-instant, Tool Calling) ─────────────────────
 function setGroqKey(key) {
   PropertiesService.getScriptProperties().setProperty('GROQ_KEY', key);
   return 'GROQ_KEY set';
@@ -387,6 +387,35 @@ function setGroqKey(key) {
 function _geminiProxy(system, prompt) {
   const key = PropertiesService.getScriptProperties().getProperty('GROQ_KEY');
   if (!key) throw new Error('GROQ_KEY not set. Run setGroqKey("your-key") in the Apps Script editor.');
+
+  const tools = [{
+    type: 'function',
+    function: {
+      name: 'add_transaction',
+      description: 'Add a financial transaction (expense, income, or transfer) to the tracker.',
+      parameters: {
+        type: 'object',
+        properties: {
+          amt:  { type: 'number',  description: 'Amount in INR' },
+          desc: { type: 'string',  description: 'Short description, e.g. "vegetables", "salary"' },
+          cat:  { type: 'string',  description: 'Category for Expense/Transfer',
+                  enum: ['Long Term Loan','Jewel Loan','Insurance','SIP/Savings','Emergency Fund',
+                         'Rent','Vijaya Amma','Staff Salary','Groceries','Milk','Vegetables',
+                         'Fruits','Food/Eating Out','Snacks','Meat','Education','Kids',
+                         'Health & Medical','Amma','Body Care','Dress','Entertainment','Travel',
+                         'Gifts/Functions','Home Care','Maintenance','Internet/Recharge',
+                         'Electricity','Cylinder','Car','Daily Expenses','NGO','Others'] },
+          income_cat: { type: 'string', description: 'Category when type is Income',
+                        enum: ['Salary','Cashback','Other Income'] },
+          type: { type: 'string', enum: ['Expense','Income','Transfer'], description: 'Transaction type' },
+          mode: { type: 'string', description: 'Payment mode',
+                  enum: ['Cash','HDFC Bank','Wallet','ICICI','HDFC','Bommi','Ramya','Others'] }
+        },
+        required: ['amt', 'desc', 'type', 'mode']
+      }
+    }
+  }];
+
   const res = UrlFetchApp.fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'post',
     contentType: 'application/json',
@@ -397,14 +426,37 @@ function _geminiProxy(system, prompt) {
         { role: 'system', content: system },
         { role: 'user',   content: prompt }
       ],
-      max_tokens: 300,
-      temperature: 0.7
+      tools: tools,
+      tool_choice: 'auto',
+      max_tokens: 400,
+      temperature: 0.3
     }),
     muteHttpExceptions: true
   });
+
   const json = JSON.parse(res.getContentText());
   if (json.error) throw new Error(json.error.message || JSON.stringify(json.error));
-  return json.choices?.[0]?.message?.content || '';
+
+  const msg = json.choices?.[0]?.message;
+  if (!msg) throw new Error('No response from AI');
+
+  // Tool call → return structured JSON the frontend can execute
+  if (msg.tool_calls && msg.tool_calls.length > 0) {
+    const tc   = msg.tool_calls[0];
+    const args = JSON.parse(tc.function.arguments);
+    const cat  = args.type === 'Income' ? (args.income_cat || 'Other Income') : (args.cat || 'Others');
+    return JSON.stringify({
+      __tool: tc.function.name,
+      amt:  args.amt,
+      desc: args.desc,
+      cat:  cat,
+      type: args.type,
+      mode: args.mode || 'Cash'
+    });
+  }
+
+  // Plain text → analysis or clarification
+  return msg.content || '';
 }
 
 // ── DEFAULTS ──────────────────────────────────────────────────────────────────

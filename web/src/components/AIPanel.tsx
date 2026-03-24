@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useStore } from '../store'
-import { CATEGORIES, INCOME_CATS, ALL_MODES, MNS } from '../constants'
+import { MNS } from '../constants'
 import { catMap, sumType, budgetSummary, INR } from '../utils'
 import { api } from '../api'
 
@@ -49,28 +49,26 @@ export default function AIPanel({ open, onClose, onSaved }: Props) {
       `Current month (${ctx.month}): Income ₹${ctx.inc}, Expenses ₹${ctx.exp}.`,
       `Top spending: ${JSON.stringify(ctx.topCats)}.`,
       `Budget vs actual (overspent): ${JSON.stringify(ctx.overspent)}.`,
-      `Valid expense categories: ${CATEGORIES.join(', ')}. Income categories: ${INCOME_CATS.join(', ')}. Valid modes: ${ALL_MODES.join(', ')}.`,
-      'If user input looks like a transaction (has an amount + any hint of category/description), ALWAYS return ONLY raw JSON with no markdown: {"entry":{"amt":N,"desc":"...","cat":"<exact category name>","type":"Expense or Income","mode":"Cash"}}.',
-      'If user asks about spending analysis, budget status, savings, or financial advice — reply in plain text under 150 words with specific numbers from the context. Be direct and actionable.',
+      'When user describes a transaction (amount + item), call the add_transaction tool with the right category.',
+      'For spending analysis, budget questions, or advice — reply in plain text under 150 words with specific numbers. Be direct and actionable.',
     ].join(' ')
 
     try {
       const reply = await api.gemini(system, text)
       try {
         const j = JSON.parse(reply)
-        if (j.entry) {
-          const e = j.entry
+        if (j.__tool === 'add_transaction') {
           await api.addRow({
             month: state.month, year: state.year,
             date: todayStr(),
-            desc: e.desc,
-            a: e.amt,
-            c: e.cat,
-            t: e.type,
-            m: e.mode || 'Cash',
+            desc: j.desc,
+            a: j.amt,
+            c: j.cat,
+            t: j.type,
+            m: j.mode || 'Cash',
             notes: ''
           })
-          setMsgs(m => [...m, { role: 'a', text: `✅ Added <b>${INR(e.amt)}</b> → ${e.cat} <span style="opacity:.7;font-size:11px">(${e.type} · ${e.mode || 'Cash'} · ${todayStr()})</span>` }])
+          setMsgs(m => [...m, { role: 'a', text: `✅ Added <b>${INR(j.amt)}</b> → ${j.cat} <span style="opacity:.7;font-size:11px">(${j.type} · ${j.mode || 'Cash'} · ${todayStr()})</span>` }])
           onSaved()
           return
         }

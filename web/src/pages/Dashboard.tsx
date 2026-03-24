@@ -2,6 +2,17 @@ import { useStore } from '../store'
 import { sumType, sumCC, sumOtherCr, catMap, budgetSummary, acctFlows, INR } from '../utils'
 import { ACCOUNTS, CC_MODES, OTHER_CR, CR_COLORS, ALL_CR } from '../constants'
 
+const RECURRING_CHECKS = [
+  { cat: 'Rent',          label: 'Rent',          type: 'Expense' },
+  { cat: 'Staff Salary',  label: 'Staff salary',  type: 'Expense' },
+  { cat: 'Vijaya Amma',   label: 'Vijaya Amma',   type: 'Expense' },
+  { cat: 'Long Term Loan',label: 'Loan EMI',       type: 'Expense' },
+  { cat: 'Jewel Loan',    label: 'Jewel loan',     type: 'Expense' },
+  { cat: 'Insurance',     label: 'Insurance',      type: 'Expense' },
+  { cat: 'SIP/Savings',   label: 'SIP',            type: 'Expense' },
+  { cat: 'Salary',        label: 'Salary received',type: 'Income'  },
+] as const
+
 function svgDonut(data: {label:string;v:number;col:string}[], size: number) {
   const total = data.reduce((s,d)=>s+d.v,0)
   if (!total) return null
@@ -27,6 +38,12 @@ export default function Dashboard({ onAddClick }: Props) {
   const { rows, budget, openingBal, month, year } = state
 
   if (state.loading) return <div className="pg"><div className="lb"><div className="spin" /><span>Loading…</span></div></div>
+
+  const today = new Date()
+  const isCurrentMonth = today.toLocaleString('en', { month: 'short' }) === month && String(today.getFullYear()) === year
+  const missing = isCurrentMonth
+    ? RECURRING_CHECKS.filter(r => !rows.some(row => row.c === r.cat && row.t === r.type))
+    : []
 
   const inc = sumType(rows, 'Income')
   const exp = sumType(rows, 'Expense')
@@ -69,6 +86,13 @@ export default function Dashboard({ onAddClick }: Props) {
 
       {!rows.length && (
         <div className="alert a-warn">⚠ No transactions yet. Tap + to add your first entry.</div>
+      )}
+
+      {missing.length > 0 && (
+        <div className="alert a-warn" style={{marginBottom:8}}>
+          <b>⏰ Not yet recorded this month:</b>{' '}
+          {missing.map(r => r.label).join(' · ')}
+        </div>
       )}
 
       {/* KPIs */}
