@@ -378,24 +378,33 @@ function saveAccountOpeningBalances(data) {
   return true;
 }
 
-// ── GEMINI PROXY ──────────────────────────────────────────────────────────────
+// ── AI PROXY (Groq — llama-3.1-8b-instant) ───────────────────────────────────
+function setGroqKey(key) {
+  PropertiesService.getScriptProperties().setProperty('GROQ_KEY', key);
+  return 'GROQ_KEY set';
+}
+
 function _geminiProxy(system, prompt) {
-  const key = PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
-  if (!key) throw new Error('GEMINI_KEY not set. Run setGeminiKey("your-key") in the Apps Script editor.');
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + key;
-  const res = UrlFetchApp.fetch(url, {
+  const key = PropertiesService.getScriptProperties().getProperty('GROQ_KEY');
+  if (!key) throw new Error('GROQ_KEY not set. Run setGroqKey("your-key") in the Apps Script editor.');
+  const res = UrlFetchApp.fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'post',
     contentType: 'application/json',
+    headers: { Authorization: 'Bearer ' + key },
     payload: JSON.stringify({
-      systemInstruction: { parts: [{ text: system }] },
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens: 300, temperature: 0.7 }
+      model: 'llama-3.1-8b-instant',
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user',   content: prompt }
+      ],
+      max_tokens: 300,
+      temperature: 0.7
     }),
     muteHttpExceptions: true
   });
   const json = JSON.parse(res.getContentText());
-  if (json.error) throw new Error(json.error.message);
-  return json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (json.error) throw new Error(json.error.message || JSON.stringify(json.error));
+  return json.choices?.[0]?.message?.content || '';
 }
 
 // ── DEFAULTS ──────────────────────────────────────────────────────────────────
