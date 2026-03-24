@@ -8,13 +8,14 @@ body {
 .mono { font-family: 'Geist Mono', monospace; }
 
 :root {
-  --bg: #F0F2FF; --card: #FFF; --border: #DDE1F5; --text: #0F1035; --muted: #5A607B;
-  --navy: #3730A3; --navy-lt: #EEF2FF; --navy-dark: #1E1B4B;
+  --bg: #F5F0FF; --card: #FFF; --border: #E0D5F7; --text: #0F0820; --muted: #6B558A;
+  --navy: #8C52FF; --navy-lt: #F0EBFF; --navy-dark: #1A0533;
   --green: #166534; --green-lt: #F0FDF4; --gm: #22C55E;
   --red: #991B1B; --red-lt: #FEF2F2; --rm: #EF4444;
-  --amber: #92400E; --amber-lt: #FFFBEB;
-  --purple: #5B21B6; --purple-lt: #F5F3FF;
-  --r: 10px; --sh: 0 1px 4px rgba(55,48,163,.08), 0 1px 2px rgba(55,48,163,.04);
+  --amber: #84371D; --amber-lt: #FDF1EE;
+  --purple: #6B3FCC; --purple-lt: #F0EBFF;
+  --teal: #97CCD6; --teal-dk: #2A8C9A;
+  --r: 10px; --sh: 0 1px 4px rgba(140,82,255,.1), 0 1px 2px rgba(140,82,255,.06);
 }
 
 /* NAV */

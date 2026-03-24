@@ -98,7 +98,7 @@ export default function Accounts({ showStatus }: Props) {
                   <span className="txn-card-amt mono" style={{color:'var(--red)'}}>{INR(v.ICICI+v.HDFC)}</span>
                 </div>
                 <div className="txn-card-bot">
-                  {v.ICICI > 0 && <span style={{fontSize:11,color:'#7C3AED'}}>ICICI {INR(v.ICICI)}</span>}
+                  {v.ICICI > 0 && <span style={{fontSize:11,color:'#8C52FF'}}>ICICI {INR(v.ICICI)}</span>}
                   {v.HDFC  > 0 && <span style={{fontSize:11,color:'var(--navy)'}}>HDFC {INR(v.HDFC)}</span>}
                 </div>
               </div>
@@ -109,7 +109,7 @@ export default function Accounts({ showStatus }: Props) {
                 <span className="txn-card-amt mono" style={{color:'var(--red)'}}>{INR(icTotal+hdTotal)}</span>
               </div>
               <div className="txn-card-bot">
-                <span style={{fontSize:11,color:'#7C3AED'}}>ICICI {INR(icTotal)}</span>
+                <span style={{fontSize:11,color:'#8C52FF'}}>ICICI {INR(icTotal)}</span>
                 <span style={{fontSize:11,color:'var(--navy)'}}>HDFC {INR(hdTotal)}</span>
               </div>
             </div>
@@ -120,7 +120,7 @@ export default function Accounts({ showStatus }: Props) {
             <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
               <thead><tr>
                 <th style={{textAlign:'left',padding:'8px 12px',fontSize:11,fontWeight:600,color:'var(--muted)',textTransform:'uppercase',borderBottom:'1px solid var(--border)'}}>Category</th>
-                <th style={{textAlign:'right',padding:'8px 12px',fontSize:11,fontWeight:600,color:'#7C3AED',textTransform:'uppercase',borderBottom:'1px solid var(--border)'}}>ICICI</th>
+                <th style={{textAlign:'right',padding:'8px 12px',fontSize:11,fontWeight:600,color:'#8C52FF',textTransform:'uppercase',borderBottom:'1px solid var(--border)'}}>ICICI</th>
                 <th style={{textAlign:'right',padding:'8px 12px',fontSize:11,fontWeight:600,color:'var(--navy)',textTransform:'uppercase',borderBottom:'1px solid var(--border)'}}>HDFC</th>
                 <th style={{textAlign:'right',padding:'8px 12px',fontSize:11,fontWeight:600,color:'var(--muted)',textTransform:'uppercase',borderBottom:'1px solid var(--border)'}}>Total</th>
               </tr></thead>
@@ -128,14 +128,14 @@ export default function Accounts({ showStatus }: Props) {
                 {ccRows.map(([cat,v])=>(
                   <tr key={cat}>
                     <td style={{padding:'9px 12px',borderBottom:'1px solid var(--border)'}}><span className="badge ba" style={{fontSize:10}}>{catIcon(cat)}{cat}</span></td>
-                    <td className="mono ta-r" style={{padding:'9px 12px',borderBottom:'1px solid var(--border)',color:v.ICICI?'#7C3AED':'var(--muted)'}}>{v.ICICI?INR(v.ICICI):'—'}</td>
+                    <td className="mono ta-r" style={{padding:'9px 12px',borderBottom:'1px solid var(--border)',color:v.ICICI?'#8C52FF':'var(--muted)'}}>{v.ICICI?INR(v.ICICI):'—'}</td>
                     <td className="mono ta-r" style={{padding:'9px 12px',borderBottom:'1px solid var(--border)',color:v.HDFC?'var(--navy)':'var(--muted)'}}>{v.HDFC?INR(v.HDFC):'—'}</td>
                     <td className="mono ta-r" style={{padding:'9px 12px',borderBottom:'1px solid var(--border)',fontWeight:600,color:'var(--red)'}}>{INR(v.ICICI+v.HDFC)}</td>
                   </tr>
                 ))}
                 <tr style={{background:'#F8FAFC'}}>
                   <td style={{padding:'9px 12px',fontWeight:700}}>Total</td>
-                  <td className="mono ta-r" style={{padding:'9px 12px',fontWeight:700,color:'#7C3AED'}}>{INR(icTotal)}</td>
+                  <td className="mono ta-r" style={{padding:'9px 12px',fontWeight:700,color:'#8C52FF'}}>{INR(icTotal)}</td>
                   <td className="mono ta-r" style={{padding:'9px 12px',fontWeight:700,color:'var(--navy)'}}>{INR(hdTotal)}</td>
                   <td className="mono ta-r" style={{padding:'9px 12px',fontWeight:700,color:'var(--red)'}}>{INR(icTotal+hdTotal)}</td>
                 </tr>

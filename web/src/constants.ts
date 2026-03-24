@@ -21,8 +21,8 @@ export const INCOME_CATS = ['Salary','Cashback','Other Income'] as const;
 export const ALL_MODES   = [...ACCOUNTS, ...CC_MODES, ...OTHER_CR] as const;
 
 export const CR_COLORS: Record<string, string> = {
-  ICICI:'#7C3AED', HDFC:'#1D4ED8',
-  Bommi:'#0891B2', Ramya:'#0E7490', Others:'#6B7280',
+  ICICI:'#8C52FF', HDFC:'#1D4ED8',
+  Bommi:'#2A8C9A', Ramya:'#1E7080', Others:'#6B558A',
 };
 
 // GAS web app URL — update after deploying

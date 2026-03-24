@@ -16,17 +16,7 @@ export default function Nav({ month, year, status, loading, onPrev, onNext, onSy
     <nav className="nav">
       {/* Brand — left */}
       <span className="nav-b" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <svg width="28" height="28" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" style={{borderRadius:7,flexShrink:0}}>
-          <rect width="512" height="512" rx="112" fill="#EEF2FF"/>
-          <rect x="80"  y="340" width="72" height="120" rx="14" fill="#6366F1" opacity="0.5"/>
-          <rect x="180" y="270" width="72" height="190" rx="14" fill="#6366F1" opacity="0.7"/>
-          <rect x="280" y="185" width="72" height="275" rx="14" fill="#4F46E5" opacity="0.85"/>
-          <rect x="380" y="100" width="72" height="360" rx="14" fill="#3730A3"/>
-          <polyline points="116,328 216,258 316,172 416,88" fill="none" stroke="#1E1B4B" strokeWidth="20" strokeLinecap="round" strokeLinejoin="round"/>
-          <polyline points="376,72 416,88 400,128" fill="none" stroke="#1E1B4B" strokeWidth="20" strokeLinecap="round" strokeLinejoin="round"/>
-          <circle cx="116" cy="328" r="16" fill="#4F46E5"/>
-          <circle cx="416" cy="88"  r="16" fill="#1E1B4B"/>
-        </svg>
+        <img src="./logo.svg" width="28" height="28" alt="FinTracker" style={{borderRadius:7,flexShrink:0,objectFit:'cover'}} />
         FinTracker
       </span>
 
