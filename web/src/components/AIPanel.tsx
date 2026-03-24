@@ -117,6 +117,15 @@ export default function AIPanel({ open, onClose, onSaved }: Props) {
           return
         }
       } catch {}
+      // Fallback: model returned add_transaction(...) as text instead of calling the tool
+      const stripped = reply.replace(/```[\w]*\n?/g, '').trim()
+      const fallback = parseDirectCommand(stripped)
+      if (fallback) {
+        await api.addRow({ month: state.month, year: state.year, date: todayStr(), desc: fallback.desc, a: fallback.amt, c: fallback.cat, t: fallback.type, m: fallback.mode, notes: '' })
+        setMsgs(m => [...m, { role: 'a', text: `✅ Added <b>${INR(fallback.amt)}</b> → ${fallback.cat} <span style="opacity:.7;font-size:11px">(${fallback.type} · ${fallback.mode} · ${todayStr()})</span>` }])
+        onSaved()
+        return
+      }
       setMsgs(m => [...m, { role: 'a', text: reply }])
     } catch (e) {
       setMsgs(m => [...m, { role: 'a', text: '⚠ ' + (e instanceof Error ? e.message : 'Error') }])
