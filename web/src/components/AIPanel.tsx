@@ -35,7 +35,7 @@ function todayStr() {
 export default function AIPanel({ open, onClose, onSaved }: Props) {
   const { state } = useStore()
   const [msgs, setMsgs] = useState<Msg[]>([
-    { role: 'a', text: '👋 Hi! I can:<br/>• <b>Add transactions</b> — type <b>500 vegetables</b> or <b>5000 salary</b><br/>• <b>Analyse expenses</b> — ask <b>where am I overspending?</b> or <b>how are my savings?</b>' }
+    { role: 'a', text: '👋 Hi! I can:<br/>• <b>Add</b> — <b>500 vegetables cash</b> or <b>5000 salary hdfc</b><br/>• <b>List</b> — <b>show groceries</b> or <b>list this month expenses</b><br/>• <b>Analyse</b> — <b>where am I overspending?</b> or <b>how are my savings?</b>' }
   ])
   const [inp, setInp] = useState('')
   const [busy, setBusy] = useState(false)
@@ -81,8 +81,11 @@ export default function AIPanel({ open, onClose, onSaved }: Props) {
       })).filter(x => x.outstanding > 0),
       totalBudget, totalSpent, ovCount,
     }
-    // Heuristic: if the input has a number it could be a transaction; otherwise it's a question
-    const looksLikeTransaction = /\d/.test(text)
+    // Transaction needs a number AND must not be a question/listing request
+    const hasNumber = /\d/.test(text)
+    const isQuery = /[?]$/.test(text.trim()) ||
+      /^(how|what|where|when|why|show|list|give|tell|display|any|are|is|was|did|do|can|which)\b/i.test(text.trim())
+    const looksLikeTransaction = hasNumber && !isQuery
 
     const system = [
       'You are a concise personal finance assistant for a family in India.',
@@ -114,6 +117,30 @@ export default function AIPanel({ open, onClose, onSaved }: Props) {
           })
           setMsgs(m => [...m, { role: 'a', text: `✅ Added <b>${INR(j.amt)}</b> → ${j.cat} <span style="opacity:.7;font-size:11px">(${j.type} · ${j.mode || 'Cash'} · ${todayStr()})</span>` }])
           onSaved()
+          return
+        }
+      } catch {}
+      // list_transactions tool call
+      try {
+        const j = JSON.parse(reply)
+        if (j.__tool === 'list_transactions') {
+          const filtered = state.rows.filter(r =>
+            (!j.cat || r.c === j.cat) && (!j.type || r.t === j.type)
+          ).slice(0, j.limit || 10)
+          if (!filtered.length) {
+            setMsgs(m => [...m, { role: 'a', text: `No transactions found${j.cat ? ' for <b>' + j.cat + '</b>' : ''}.` }])
+            return
+          }
+          const rowsHtml = filtered.map(r =>
+            `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(0,0,0,.07);font-size:12px">` +
+            `<span>${r.date} · ${r.desc}</span>` +
+            `<span style="font-weight:700;font-family:monospace;margin-left:8px">${INR(r.a)}</span></div>`
+          ).join('')
+          const total = filtered.reduce((s, r) => s + r.a, 0)
+          setMsgs(m => [...m, { role: 'a', text:
+            `<b>${j.cat || (j.type || 'Transactions')}</b> — ${filtered.length} entries<br/>${rowsHtml}` +
+            `<div style="text-align:right;margin-top:5px;font-weight:700;font-size:12px">Total: ${INR(total)}</div>`
+          }])
           return
         }
       } catch {}

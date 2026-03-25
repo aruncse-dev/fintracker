@@ -4,9 +4,9 @@ import { catMap, budgetSummary, INR, catIcon } from '../utils'
 import { api } from '../api'
 import { CATEGORIES } from '../constants'
 
-interface Props { showStatus: (msg: string) => void }
+interface Props { showStatus: (msg: string) => void; onCategoryClick: (cat: string) => void }
 
-export default function Budget({ showStatus }: Props) {
+export default function Budget({ showStatus, onCategoryClick }: Props) {
   const { state, dispatch } = useStore()
   const { budget, rows } = state
   const cm = catMap(rows, budget)
@@ -107,7 +107,7 @@ export default function Budget({ showStatus }: Props) {
             <div key={cat} className={`bud-row ${over?'ov-row':''}`}>
               <div className="bud-row-body">
                 <div className="bud-row-head">
-                  <span className="bud-row-name">{catIcon(cat)}{cat}</span>
+                  <span className="bud-row-name" style={{cursor:'pointer'}} onClick={() => onCategoryClick(cat)}>{catIcon(cat)}{cat} <span style={{fontSize:10,opacity:.5}}>↗</span></span>
                   <span className={`bud-row-rest ${over?'ov-amt':'ok-amt'}`}>
                     {over ? `−${INR(spent-budg)} over` : `${INR(budg-spent)} left`}
                   </span>

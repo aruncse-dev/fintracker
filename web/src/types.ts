@@ -24,6 +24,7 @@ export interface AppState {
   loading: boolean;
   txnPage: number;
   filter: string;
+  catFilter: string;
 }
 
 export interface TransactionForm {

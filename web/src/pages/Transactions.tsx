@@ -26,8 +26,14 @@ export default function Transactions({ onEdit, onAddClick }: Props) {
       </div>
 
       <div className="pills">
+        {state.catFilter && (
+          <button className="pill active" style={{background:'var(--amber)',borderColor:'var(--amber)'}}
+            onClick={() => dispatch({ type:'SET_CAT_FILTER', payload:'' })}>
+            {state.catFilter} ✕
+          </button>
+        )}
         {FILTERS.map(f => (
-          <button key={f} className={`pill ${state.filter===f?'active':''}`}
+          <button key={f} className={`pill ${!state.catFilter&&state.filter===f?'active':''}`}
             onClick={() => dispatch({ type:'SET_FILTER', payload:f })}>
             {f}
           </button>

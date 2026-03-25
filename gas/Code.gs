@@ -388,30 +388,46 @@ function _geminiProxy(system, prompt, forceTool) {
   const key = PropertiesService.getScriptProperties().getProperty('GROQ_KEY');
   if (!key) throw new Error('GROQ_KEY not set. Run setGroqKey("your-key") in the Apps Script editor.');
 
-  const tools = [{
+  const EXPENSE_CATS = ['Long Term Loan','Jewel Loan','Insurance','SIP/Savings','Emergency Fund',
+    'Rent','Vijaya Amma','Staff Salary','Groceries','Milk','Vegetables','Fruits','Food/Eating Out',
+    'Snacks','Meat','Education','Kids','Health & Medical','Amma','Body Care','Dress','Entertainment',
+    'Travel','Gifts/Functions','Home Care','Maintenance','Internet/Recharge','Electricity',
+    'Cylinder','Car','Daily Expenses','NGO','Others'];
+  const INCOME_CATS = ['Salary','Cashback','Other Income'];
+  const ALL_CATS = EXPENSE_CATS.concat(INCOME_CATS);
+
+  // forceTool=true → user is recording a transaction (add_transaction, required)
+  // forceTool=false → user is querying/analysing (list_transactions, auto)
+  const tools = forceTool ? [{
     type: 'function',
     function: {
       name: 'add_transaction',
-      description: 'Add a financial transaction (expense, income, or transfer) to the tracker.',
+      description: 'Add a financial transaction. Called when user gives an amount and description.',
       parameters: {
         type: 'object',
         properties: {
-          amt:  { type: 'number',  description: 'Amount in INR' },
-          desc: { type: 'string',  description: 'Short description, e.g. "vegetables", "salary"' },
-          cat:  { type: 'string',  description: 'Category for Expense/Transfer',
-                  enum: ['Long Term Loan','Jewel Loan','Insurance','SIP/Savings','Emergency Fund',
-                         'Rent','Vijaya Amma','Staff Salary','Groceries','Milk','Vegetables',
-                         'Fruits','Food/Eating Out','Snacks','Meat','Education','Kids',
-                         'Health & Medical','Amma','Body Care','Dress','Entertainment','Travel',
-                         'Gifts/Functions','Home Care','Maintenance','Internet/Recharge',
-                         'Electricity','Cylinder','Car','Daily Expenses','NGO','Others'] },
-          income_cat: { type: 'string', description: 'Category when type is Income',
-                        enum: ['Salary','Cashback','Other Income'] },
-          type: { type: 'string', enum: ['Expense','Income','Transfer'], description: 'Transaction type' },
-          mode: { type: 'string', description: 'Payment mode',
-                  enum: ['Cash','HDFC Bank','Wallet','ICICI','HDFC','Bommi','Ramya','Others'] }
+          amt:        { type: 'number', description: 'Amount in INR' },
+          desc:       { type: 'string', description: 'Short description of the transaction' },
+          cat:        { type: 'string', description: 'Category (Expense/Transfer)', enum: EXPENSE_CATS },
+          income_cat: { type: 'string', description: 'Category (Income only)', enum: INCOME_CATS },
+          type:       { type: 'string', enum: ['Expense','Income','Transfer'] },
+          mode:       { type: 'string', enum: ['Cash','HDFC Bank','Wallet','ICICI','HDFC','Bommi','Ramya','Others'] }
         },
         required: ['amt', 'desc', 'type', 'mode']
+      }
+    }
+  }] : [{
+    type: 'function',
+    function: {
+      name: 'list_transactions',
+      description: 'List transactions for the current month filtered by category or type.',
+      parameters: {
+        type: 'object',
+        properties: {
+          cat:   { type: 'string', description: 'Filter by category name', enum: ALL_CATS },
+          type:  { type: 'string', enum: ['Expense','Income','Transfer'], description: 'Filter by type' },
+          limit: { type: 'number', description: 'Max rows to return (default 10, max 50)' }
+        }
       }
     }
   }];
@@ -427,7 +443,7 @@ function _geminiProxy(system, prompt, forceTool) {
         { role: 'user',   content: prompt }
       ],
       tools: tools,
-      tool_choice: forceTool ? 'required' : 'none',
+      tool_choice: forceTool ? 'required' : 'auto',
       max_tokens: 400,
       temperature: 0.3
     }),
@@ -440,22 +456,20 @@ function _geminiProxy(system, prompt, forceTool) {
   const msg = json.choices?.[0]?.message;
   if (!msg) throw new Error('No response from AI');
 
-  // Tool call → return structured JSON the frontend can execute
   if (msg.tool_calls && msg.tool_calls.length > 0) {
     const tc   = msg.tool_calls[0];
     const args = JSON.parse(tc.function.arguments);
-    const cat  = args.type === 'Income' ? (args.income_cat || 'Other Income') : (args.cat || 'Others');
-    return JSON.stringify({
-      __tool: tc.function.name,
-      amt:  args.amt,
-      desc: args.desc,
-      cat:  cat,
-      type: args.type,
-      mode: args.mode || 'Cash'
-    });
+
+    if (tc.function.name === 'add_transaction') {
+      const cat = args.type === 'Income' ? (args.income_cat || 'Other Income') : (args.cat || 'Others');
+      return JSON.stringify({ __tool: 'add_transaction', amt: args.amt, desc: args.desc, cat, type: args.type, mode: args.mode || 'Cash' });
+    }
+
+    if (tc.function.name === 'list_transactions') {
+      return JSON.stringify({ __tool: 'list_transactions', cat: args.cat || '', type: args.type || '', limit: args.limit || 10 });
+    }
   }
 
-  // Plain text → analysis or clarification
   return msg.content || '';
 }
 

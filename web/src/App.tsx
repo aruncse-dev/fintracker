@@ -104,7 +104,7 @@ function Inner() {
       <main>
         {tab === 'dash' && <Dashboard onAddClick={() => { setEditRow(null); setModalOpen(true) }} />}
         {tab === 'txns' && <Transactions onEdit={r => { setEditRow(r); setModalOpen(true) }} onAddClick={() => { setEditRow(null); setModalOpen(true) }} />}
-        {tab === 'bud'  && <Budget showStatus={showStatus} />}
+        {tab === 'bud'  && <Budget showStatus={showStatus} onCategoryClick={cat => { dispatch({ type:'SET_CAT_FILTER', payload:cat }); setTab('txns') }} />}
         {tab === 'cc'   && <Credits />}
         {tab === 'acct' && <Accounts showStatus={showStatus} />}
       </main>
