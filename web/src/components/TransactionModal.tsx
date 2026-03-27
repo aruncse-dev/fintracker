@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { X, Trash2, Check, Plus, AlertTriangle, Loader2 } from 'lucide-react'
 import { Transaction, TransactionForm } from '../types'
 import { api } from '../api'
 import { CATEGORIES, INCOME_CATS, ACCOUNTS, CC_MODES, OTHER_CR } from '../constants'
@@ -79,7 +80,7 @@ export default function TransactionModal({ row, month, year, onClose, onSaved, s
       <div className="modal">
         <div className="modal-hd">
           <span className="modal-title">{isEdit ? 'Edit Transaction' : 'Add Transaction'}</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="modal-body">
           <div className="form-row">
@@ -133,13 +134,13 @@ export default function TransactionModal({ row, month, year, onClose, onSaved, s
           <div className="modal-foot-l">
             {isEdit && (
               <button className="btn btn-red btn-sm" onClick={del} disabled={deleting}>
-                {deleting ? '…' : delConfirm ? '⚠ Confirm delete?' : '🗑 Delete'}
+                {deleting ? <Loader2 size={14} className="spin-icon" /> : delConfirm ? <><AlertTriangle size={14} />Confirm?</> : <><Trash2 size={14} />Delete</>}
               </button>
             )}
           </div>
-          <button className="btn" style={{ background: 'var(--muted)' }} onClick={onClose}>Cancel</button>
-          <button className="btn btn-green" onClick={save} disabled={saving}>
-            {saving ? '…' : isEdit ? 'Save' : 'Add'}
+          <button className="btn btn-sm" style={{background:'var(--border)',color:'var(--text)'}} onClick={onClose}><X size={14} />Cancel</button>
+          <button className="btn btn-sm btn-green" onClick={save} disabled={saving}>
+            {saving ? <Loader2 size={14} className="spin-icon" /> : isEdit ? <><Check size={14} />Save</> : <><Plus size={14} />Add</>}
           </button>
         </div>
       </div>

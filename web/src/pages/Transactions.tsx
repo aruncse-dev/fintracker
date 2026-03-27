@@ -1,3 +1,4 @@
+import { Pencil, Plus } from 'lucide-react'
 import { useStore, usePage } from '../store'
 import { Transaction } from '../types'
 import { fd, INR, catIcon } from '../utils'
@@ -22,7 +23,7 @@ export default function Transactions({ onEdit, onAddClick }: Props) {
     <div className="pg">
       <div className="sec" style={{marginTop:12}}>
         <span className="sec-h">{total} entries · {state.month} {state.year}</span>
-        <button className="btn btn-sm btn-green" onClick={onAddClick}>＋ Add</button>
+        <button className="btn btn-sm btn-green" onClick={onAddClick}><Plus size={14} />Add</button>
       </div>
 
       <div className="pills">
@@ -91,7 +92,7 @@ export default function Transactions({ onEdit, onAddClick }: Props) {
                       <td>{typeBadge(r.t)}</td>
                       <td>{isCr?<span className="badge bn">{r.m}</span>:r.m}</td>
                       <td className="mono ta-r" style={{color:col}}>{(isI||isS)?'+':'−'}{INR(r.a)}</td>
-                      <td><button className="icon-btn" onClick={()=>onEdit(r)}>✏️</button></td>
+                      <td><button className="icon-btn" onClick={()=>onEdit(r)}><Pencil size={14} /></button></td>
                     </tr>
                   )
                 })}

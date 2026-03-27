@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { Pencil, Trash2, Plus, RotateCcw } from 'lucide-react'
 import { useStore } from '../store'
 import { catMap, budgetSummary, INR, catIcon } from '../utils'
 import { api } from '../api'
@@ -56,7 +57,7 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
       <div className="sec" style={{marginTop:12}}>
         <span className="sec-h">Budget Management</span>
         <div style={{display:'flex',gap:6}}>
-          <button className="btn btn-sm btn-green" onClick={() => setAdding(a=>!a)}>＋ Add</button>
+          <button className="btn btn-sm btn-green" onClick={() => setAdding(a=>!a)}><Plus size={14} />Add</button>
           <button className="btn btn-sm" style={{background:'var(--border)',color:'var(--text)'}} disabled={saving} onClick={async () => {
             if (!confirm('Reset all budgets to defaults?')) return
             setSaving(true)
@@ -67,7 +68,7 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
             } catch (e) {
               showStatus('⚠ ' + (e instanceof Error ? e.message : 'Reset failed'))
             } finally { setSaving(false) }
-          }}>↺ Reset</button>
+          }}><RotateCcw size={13} />Reset</button>
         </div>
       </div>
 
@@ -129,8 +130,8 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
                 </div>
               </div>
               <div className="bud-actions">
-                <button className="icon-btn" style={{fontSize:13,opacity:.5}} onClick={()=>{setEditing(cat);setEditVal(String(budg))}}>✏️</button>
-                <button className="icon-btn" style={{fontSize:13,opacity:.35}} onClick={()=>deleteCat(cat)}>🗑</button>
+                <button className="icon-btn" onClick={()=>{setEditing(cat);setEditVal(String(budg))}}><Pencil size={14} /></button>
+                <button className="icon-btn" style={{color:'var(--red)'}} onClick={()=>deleteCat(cat)}><Trash2 size={14} /></button>
               </div>
             </div>
           )

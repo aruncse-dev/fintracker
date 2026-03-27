@@ -1,3 +1,5 @@
+import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+
 const MNS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] as const
 const CC_CYCLE_DAY = 19
 
@@ -25,16 +27,16 @@ export default function Nav({ month, year, status, loading, onPrev, onNext, onSy
 
       {/* Month nav — right */}
       <div className="nav-month">
-        <button className="nav-arrow" onClick={onPrev}>‹</button>
+        <button className="nav-arrow" onClick={onPrev}><ChevronLeft size={16} /></button>
         <div className="nav-ml">
           {month} {year}
           <div style={{ fontSize: 9, opacity: .65, fontWeight: 400 }}>{cycleSubtitle(month)}</div>
         </div>
-        <button className="nav-arrow" onClick={onNext}>›</button>
+        <button className="nav-arrow" onClick={onNext}><ChevronRight size={16} /></button>
       </div>
 
       <button className="nav-sync" onClick={onSync} disabled={loading} style={{ marginLeft: 6 }}>
-        {loading ? '…' : '↻'}
+        {loading ? '…' : <RefreshCw size={13} />}
       </button>
     </nav>
   )

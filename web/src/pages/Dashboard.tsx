@@ -1,3 +1,4 @@
+import { TrendingUp, TrendingDown, CreditCard, Handshake, Plus } from 'lucide-react'
 import { useStore } from '../store'
 import { sumType, sumCC, sumOtherCr, catMap, budgetSummary, acctFlows, INR } from '../utils'
 import { ACCOUNTS, CC_MODES, OTHER_CR, CR_COLORS, ALL_CR } from '../constants'
@@ -81,7 +82,7 @@ export default function Dashboard({ onAddClick }: Props) {
     <div className="pg">
       <div className="sec" style={{marginTop:12}}>
         <span className="sec-h">{month} {year}</span>
-        <button className="btn btn-sm btn-green" onClick={onAddClick}>＋ Add Transaction</button>
+        <button className="btn btn-sm btn-green" onClick={onAddClick}><Plus size={14} />Add Transaction</button>
       </div>
 
       {!rows.length && (
@@ -97,10 +98,10 @@ export default function Dashboard({ onAddClick }: Props) {
 
       {/* KPIs */}
       <div className="kpis" style={{marginTop:12}}>
-        <div className="kpi"><div className="kpi-l">💰 Income</div><div className="kpi-v mono" style={{color:'var(--green)'}}>+{INR(inc)}</div></div>
-        <div className="kpi"><div className="kpi-l">💸 Expenses</div><div className="kpi-v mono" style={{color:'var(--red)'}}>−{INR(exp)}</div></div>
-        <div className="kpi"><div className="kpi-l">💳 Credit Cards</div><div className="kpi-v mono" style={{color:'#2563EB'}}>−{INR(cc)}</div></div>
-        <div className="kpi"><div className="kpi-l">🤝 Other Credits</div><div className="kpi-v mono" style={{color:'#0891B2'}}>−{INR(ocr)}</div></div>
+        <div className="kpi"><div className="kpi-l"><TrendingUp size={13} />Income</div><div className="kpi-v mono" style={{color:'var(--green)'}}>+{INR(inc)}</div></div>
+        <div className="kpi"><div className="kpi-l"><TrendingDown size={13} />Expenses</div><div className="kpi-v mono" style={{color:'var(--red)'}}>−{INR(exp)}</div></div>
+        <div className="kpi"><div className="kpi-l"><CreditCard size={13} />Credit Cards</div><div className="kpi-v mono" style={{color:'#2563EB'}}>−{INR(cc)}</div></div>
+        <div className="kpi"><div className="kpi-l"><Handshake size={13} />Other Credits</div><div className="kpi-v mono" style={{color:'#0891B2'}}>−{INR(ocr)}</div></div>
       </div>
 
       {/* Balance hero */}
