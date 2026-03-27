@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Pencil, Trash2, Plus, RotateCcw } from 'lucide-react'
+import { Pencil, Trash2, Plus, RotateCcw, Check, X, AlertTriangle } from 'lucide-react'
 import { useStore } from '../store'
 import { catMap, budgetSummary, INR, catIcon } from '../utils'
 import { api } from '../api'
@@ -7,18 +7,22 @@ import { CATEGORIES } from '../constants'
 
 interface Props { showStatus: (msg: string) => void; onCategoryClick: (cat: string) => void }
 
+type ModalMode = 'add' | 'edit' | 'delete' | 'reset' | null
+interface ModalState { mode: ModalMode; cat: string; val: string }
+
 export default function Budget({ showStatus, onCategoryClick }: Props) {
   const { state, dispatch } = useStore()
   const { budget, rows } = state
   const cm = catMap(rows, budget)
   const { totalBudget, totalSpent, ovCount, totalOver, totalPct, tCol } = budgetSummary(budget, cm)
   const active = Object.entries(budget).filter(([,b]) => b > 0)
-  const [editing, setEditing] = useState<string | null>(null)
-  const [editVal, setEditVal] = useState('')
-  const [adding, setAdding] = useState(false)
-  const [newCat, setNewCat] = useState<string>(CATEGORIES[0])
-  const [newAmt, setNewAmt] = useState('')
+  const [modal, setModal] = useState<ModalState>({ mode: null, cat: '', val: '' })
   const [saving, setSaving] = useState(false)
+
+  function openAdd() { setModal({ mode: 'add', cat: CATEGORIES[0], val: '' }) }
+  function openEdit(cat: string, budg: number) { setModal({ mode: 'edit', cat, val: String(budg) }) }
+  function openDelete(cat: string) { setModal({ mode: 'delete', cat, val: '' }) }
+  function closeModal() { setModal({ mode: null, cat: '', val: '' }) }
 
   const saveBudget = useCallback(async (newBudget: Record<string,number>) => {
     setSaving(true)
@@ -31,25 +35,37 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
     } finally { setSaving(false) }
   }, [dispatch, showStatus])
 
-  async function saveEdit(cat: string) {
-    const val = parseFloat(editVal)
-    if (isNaN(val)) { setEditing(null); return }
-    await saveBudget({ ...budget, [cat]: val })
-    setEditing(null)
+  async function confirmAdd() {
+    const val = parseFloat(modal.val)
+    if (!modal.cat || isNaN(val) || val <= 0) { showStatus('⚠ Enter category and amount'); return }
+    await saveBudget({ ...budget, [modal.cat]: val })
+    closeModal()
   }
 
-  async function deleteCat(cat: string) {
-    if (!confirm(`Remove budget for "${cat}"?`)) return
+  async function confirmEdit() {
+    const val = parseFloat(modal.val)
+    if (isNaN(val)) { closeModal(); return }
+    await saveBudget({ ...budget, [modal.cat]: val })
+    closeModal()
+  }
+
+  async function confirmDelete() {
     const nb = { ...budget }
-    delete nb[cat]
+    delete nb[modal.cat]
     await saveBudget(nb)
+    closeModal()
   }
 
-  async function addCat() {
-    const val = parseFloat(newAmt)
-    if (!newCat || isNaN(val) || val <= 0) { showStatus('⚠ Enter category and amount'); return }
-    await saveBudget({ ...budget, [newCat]: val })
-    setNewAmt(''); setAdding(false)
+  async function confirmReset() {
+    closeModal()
+    setSaving(true)
+    try {
+      const def = await api.resetBudget()
+      dispatch({ type:'SET_BUDGET', payload: def })
+      showStatus('✓ Budget reset to defaults')
+    } catch (e) {
+      showStatus('⚠ ' + (e instanceof Error ? e.message : 'Reset failed'))
+    } finally { setSaving(false) }
   }
 
   return (
@@ -57,32 +73,10 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
       <div className="sec" style={{marginTop:12}}>
         <span className="sec-h">Budget Management</span>
         <div style={{display:'flex',gap:6}}>
-          <button className="btn btn-sm btn-green" onClick={() => setAdding(a=>!a)}><Plus size={14} />Add</button>
-          <button className="btn btn-sm" style={{background:'var(--border)',color:'var(--text)'}} disabled={saving} onClick={async () => {
-            if (!confirm('Reset all budgets to defaults?')) return
-            setSaving(true)
-            try {
-              const def = await api.resetBudget()
-              dispatch({ type:'SET_BUDGET', payload: def })
-              showStatus('✓ Budget reset to defaults')
-            } catch (e) {
-              showStatus('⚠ ' + (e instanceof Error ? e.message : 'Reset failed'))
-            } finally { setSaving(false) }
-          }}><RotateCcw size={13} />Reset</button>
+          <button className="btn btn-sm btn-green" onClick={openAdd}><Plus size={14} />Add</button>
+          <button className="btn btn-sm" style={{background:'var(--border)',color:'var(--text)'}} disabled={saving} onClick={() => setModal({ mode:'reset', cat:'', val:'' })}><RotateCcw size={13} />Reset</button>
         </div>
       </div>
-
-      {adding && (
-        <div className="card cp" style={{marginBottom:10}}>
-          <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'flex-end'}}>
-            <select className="form-sel" style={{flex:2,minWidth:140}} value={newCat} onChange={e=>setNewCat(e.target.value)}>
-              {CATEGORIES.map(c=><option key={c}>{c}</option>)}
-            </select>
-            <input className="form-inp mono" type="number" placeholder="Budget ₹" style={{flex:1,minWidth:100}} value={newAmt} onChange={e=>setNewAmt(e.target.value)} />
-            <button className="btn btn-sm btn-green" onClick={addCat} disabled={saving}>{saving?'…':'Add'}</button>
-          </div>
-        </div>
-      )}
 
       {/* Summary card */}
       <div className="card cp" style={{marginBottom:10,borderLeft:`4px solid ${tCol}`}}>
@@ -116,27 +110,105 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
                 <div className="bar-bg" style={{height:5}}><div className="bar-f" style={{width:`${pct}%`,background:col}} /></div>
                 <div className="bud-row-meta">
                   <span>{INR(spent)} spent</span>
-                  {editing === cat ? (
-                    <input
-                      className="form-inp mono" type="number" style={{width:90,padding:'2px 7px',fontSize:12}}
-                      value={editVal} autoFocus
-                      onChange={e=>setEditVal(e.target.value)}
-                      onBlur={()=>saveEdit(cat)}
-                      onKeyDown={e=>{if(e.key==='Enter')saveEdit(cat);if(e.key==='Escape')setEditing(null)}}
-                    />
-                  ) : (
-                    <span className="bamt mono" onClick={()=>{setEditing(cat);setEditVal(String(budg))}}>{INR(budg)}</span>
-                  )}
+                  <span className="bamt mono">{INR(budg)}</span>
                 </div>
               </div>
               <div className="bud-actions">
-                <button className="icon-btn" onClick={()=>{setEditing(cat);setEditVal(String(budg))}}><Pencil size={14} /></button>
-                <button className="icon-btn" style={{color:'var(--red)'}} onClick={()=>deleteCat(cat)}><Trash2 size={14} /></button>
+                <button className="icon-btn" onClick={() => openEdit(cat, budg)}><Pencil size={14} /></button>
+                <button className="icon-btn" style={{color:'var(--red)'}} onClick={() => openDelete(cat)}><Trash2 size={14} /></button>
               </div>
             </div>
           )
         })}
-        {!active.length && <div className="lb">No budget categories. Click "+ Add Category".</div>}
+        {!active.length && <div className="lb">No budget categories. Click "+ Add".</div>}
+      </div>
+
+      {/* Modal */}
+      <div className={`modal-bg ${modal.mode ? 'open' : ''}`} onClick={closeModal}>
+        <div className="modal" onClick={e => e.stopPropagation()}>
+          {modal.mode === 'reset' ? (
+            <>
+              <div className="modal-hd">
+                <span className="modal-title" style={{display:'flex',alignItems:'center',gap:6}}>
+                  <RotateCcw size={15} /> Reset Budgets
+                </span>
+                <button className="modal-close" onClick={closeModal}><X size={16} /></button>
+              </div>
+              <div className="modal-body">
+                <div style={{fontSize:14,color:'var(--text)'}}>
+                  Reset all budget amounts to default values? Your transactions will not be affected.
+                </div>
+              </div>
+              <div className="modal-foot">
+                <div className="modal-foot-l" />
+                <button className="btn btn-sm" style={{background:'var(--border)',color:'var(--text)'}} onClick={closeModal}><X size={13} />Cancel</button>
+                <button className="btn btn-sm" style={{background:'var(--amber)',color:'#fff'}} onClick={confirmReset} disabled={saving}>
+                  <RotateCcw size={13} />{saving ? '…' : 'Reset'}
+                </button>
+              </div>
+            </>
+          ) : modal.mode === 'delete' ? (
+            <>
+              <div className="modal-hd">
+                <span className="modal-title" style={{display:'flex',alignItems:'center',gap:6}}>
+                  <AlertTriangle size={16} /> Remove Budget
+                </span>
+                <button className="modal-close" onClick={closeModal}><X size={16} /></button>
+              </div>
+              <div className="modal-body">
+                <div style={{fontSize:14,color:'var(--text)'}}>
+                  Remove budget for <b>{catIcon(modal.cat)}{modal.cat}</b>? This will not delete transactions.
+                </div>
+              </div>
+              <div className="modal-foot">
+                <div className="modal-foot-l" />
+                <button className="btn btn-sm" style={{background:'var(--border)',color:'var(--text)'}} onClick={closeModal}><X size={13} />Cancel</button>
+                <button className="btn btn-sm" style={{background:'var(--red)',color:'#fff'}} onClick={confirmDelete} disabled={saving}>
+                  <Trash2 size={13} />{saving ? '…' : 'Remove'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="modal-hd">
+                <span className="modal-title" style={{display:'flex',alignItems:'center',gap:6}}>
+                  {modal.mode === 'add' ? <><Plus size={15} />Add Budget</> : <><Pencil size={14} />Edit Budget</>}
+                </span>
+                <button className="modal-close" onClick={closeModal}><X size={16} /></button>
+              </div>
+              <div className="modal-body">
+                {modal.mode === 'add' ? (
+                  <div>
+                    <div style={{fontSize:12,fontWeight:600,color:'var(--muted)',marginBottom:5,textTransform:'uppercase',letterSpacing:.4}}>Category</div>
+                    <select className="form-sel" value={modal.cat} onChange={e => setModal(m => ({...m, cat: e.target.value}))}>
+                      {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                ) : (
+                  <div style={{fontSize:15,fontWeight:700,color:'var(--text)'}}>
+                    {catIcon(modal.cat)}{modal.cat}
+                  </div>
+                )}
+                <div>
+                  <div style={{fontSize:12,fontWeight:600,color:'var(--muted)',marginBottom:5,textTransform:'uppercase',letterSpacing:.4}}>Budget Amount (₹)</div>
+                  <input
+                    className="form-inp mono" type="number" placeholder="0"
+                    value={modal.val} autoFocus
+                    onChange={e => setModal(m => ({...m, val: e.target.value}))}
+                    onKeyDown={e => { if (e.key === 'Enter') { modal.mode === 'add' ? confirmAdd() : confirmEdit() } }}
+                  />
+                </div>
+              </div>
+              <div className="modal-foot">
+                <div className="modal-foot-l" />
+                <button className="btn btn-sm" style={{background:'var(--border)',color:'var(--text)'}} onClick={closeModal}><X size={13} />Cancel</button>
+                <button className="btn btn-sm btn-green" onClick={modal.mode === 'add' ? confirmAdd : confirmEdit} disabled={saving}>
+                  <Check size={13} />{saving ? '…' : 'Save'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

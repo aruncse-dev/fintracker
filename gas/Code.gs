@@ -406,12 +406,13 @@ function _geminiProxy(system, prompt, forceTool) {
       parameters: {
         type: 'object',
         properties: {
-          amt:        { type: 'number', description: 'Amount in INR' },
-          desc:       { type: 'string', description: 'Short description of the transaction' },
-          cat:        { type: 'string', description: 'Category (Expense/Transfer)', enum: EXPENSE_CATS },
-          income_cat: { type: 'string', description: 'Category (Income only)', enum: INCOME_CATS },
-          type:       { type: 'string', enum: ['Expense','Income','Transfer'] },
-          mode:       { type: 'string', enum: ['Cash','HDFC Bank','Wallet','ICICI','HDFC','Bommi','Ramya','Others'] }
+          amt:        { type: 'number', description: 'Amount in INR. Required.' },
+          desc:       { type: 'string', description: 'Vendor, place or item name (e.g. "Auto", "A1 Mart", "Swiggy"). If no specific vendor/place is mentioned, use the category name itself.' },
+          cat:        { type: 'string', description: 'Expense/Transfer category', enum: EXPENSE_CATS },
+          income_cat: { type: 'string', description: 'Income category', enum: INCOME_CATS },
+          type:       { type: 'string', enum: ['Expense','Income','Transfer'], description: 'Income if money received; Transfer if moving between accounts; else Expense.' },
+          mode:       { type: 'string', enum: ['Cash','HDFC Bank','Wallet','ICICI','HDFC','Bommi','Ramya','Others'],
+                        description: 'Payment method. cash/hand → Cash; icici/icici card → ICICI; hdfc card/hdfc cc → HDFC; hdfc bank/hdfc debit/hdfcbank → HDFC Bank; gpay/phonepay/paytm/upi/wallet → Wallet. Default: Cash.' }
         },
         required: ['amt', 'desc', 'type', 'mode']
       }
@@ -445,7 +446,7 @@ function _geminiProxy(system, prompt, forceTool) {
       tools: tools,
       tool_choice: forceTool ? 'required' : 'auto',
       max_tokens: 400,
-      temperature: 0.3
+      temperature: forceTool ? 0.1 : 0.3
     }),
     muteHttpExceptions: true
   });

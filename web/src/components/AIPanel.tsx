@@ -87,18 +87,48 @@ export default function AIPanel({ open, onClose, onSaved }: Props) {
       /^(how|what|where|when|why|show|list|give|tell|display|any|are|is|was|did|do|can|which)\b/i.test(text.trim())
     const looksLikeTransaction = hasNumber && !isQuery
 
-    const system = [
-      'You are a concise personal finance assistant for a family in India.',
-      'Monthly income: ₹2,38,000. Fixed commitments: Loan EMI ₹56,000, Jewel Loan ₹30,000, Insurance ₹9,700, SIP ₹11,500, Rent ₹5,500, Vijaya Amma ₹6,500, Staff Salary ₹18,000.',
-      `Current month (${ctx.month}): Income ₹${ctx.inc}, Expenses ₹${ctx.exp}.`,
-      `All category spending (spent/budget): ${JSON.stringify(ctx.allCats)}.`,
-      `Overspent: ${JSON.stringify(ctx.overspent)}.`,
-      `Account balances: ${JSON.stringify(ctx.accounts)}.`,
-      `Credit outstanding: ${JSON.stringify(ctx.credits)}.`,
-      looksLikeTransaction
-        ? 'The user is recording a transaction. Call add_transaction with the correct category, type, and mode. ALWAYS call the tool — do NOT reply in text.'
-        : 'The user is asking a question or requesting analysis. NEVER call add_transaction. Reply in plain text under 150 words with specific numbers from the context. Be direct and actionable.',
+    const txnPrompt = [
+      'Extract a transaction from the user input and call add_transaction. Rules:',
+      'amt: the number.',
+      'desc: the place, vendor, or item (e.g. "Auto", "A1 Mart", "Petrol bunk", "Amazon"). Not the category name. If no vendor/place is mentioned, use the category name as desc.',
+      'type: Expense by default. Income if money received. Transfer if moving between accounts.',
+      'mode: payment method mapping —',
+      '  "cash/hand/பணம்" → Cash,',
+      '  "icici/icici card/icici cc" → ICICI,',
+      '  "hdfc card/hdfc cc/hdfc credit" → HDFC,',
+      '  "hdfc bank/hdfc debit/hdfc account/hdfcbank" → HDFC Bank,',
+      '  "wallet/gpay/google pay/phonepay/phonepe/paytm/upi" → Wallet.',
+      '  Default to Cash if no payment method mentioned.',
+      'cat: best-fit category —',
+      '  auto/cab/uber/ola/bus/train/fuel/petrol → Travel,',
+      '  vegetables/kirana/supermarket/bigbasket/dmart → Groceries,',
+      '  restaurant/swiggy/zomato/hotel/food → Food/Eating Out,',
+      '  milk/dairy → Milk,',
+      '  medicine/doctor/hospital/pharmacy → Health & Medical,',
+      '  school/fees/books/tuition → Education,',
+      '  amazon/flipkart/online shopping/clothes → Dress or Others,',
+      '  electricity/eb bill → Electricity,',
+      '  mobile/internet/recharge/jio/airtel → Internet/Recharge.',
+      'ALWAYS call the tool. Never reply in text.',
+      'Examples:',
+      '"500 Cash for Travel in Auto" → amt=500, desc="Auto", cat=Travel, type=Expense, mode=Cash.',
+      '"1000 ICICI to buy Groceries in A1 Mart" → amt=1000, desc="A1 Mart", cat=Groceries, type=Expense, mode=ICICI.',
+      '"200 wallet swiggy dinner" → amt=200, desc="Swiggy dinner", cat=Food/Eating Out, type=Expense, mode=Wallet.',
+      '"50000 salary hdfc bank" → amt=50000, desc="Salary", cat=Salary, type=Income, mode=HDFC Bank.',
     ].join(' ')
+
+    const analysisPrompt = [
+      'You are a personal finance assistant for a family in India.',
+      'Monthly income: ₹2,38,000. Fixed: Loan EMI ₹56k, Jewel Loan ₹30k, Insurance ₹9.7k, SIP ₹11.5k, Rent ₹5.5k, Vijaya Amma ₹6.5k, Staff ₹18k.',
+      `${ctx.month}: Income ₹${ctx.inc}, Expenses ₹${ctx.exp}.`,
+      `Spending: ${JSON.stringify(ctx.allCats)}.`,
+      `Overspent: ${JSON.stringify(ctx.overspent)}.`,
+      `Balances: ${JSON.stringify(ctx.accounts)}.`,
+      `Credits: ${JSON.stringify(ctx.credits)}.`,
+      'Reply in plain text under 150 words. Use specific numbers. Be direct and actionable.',
+    ].join(' ')
+
+    const system = looksLikeTransaction ? txnPrompt : analysisPrompt
 
     try {
       const reply = await api.gemini(system, text, looksLikeTransaction)
