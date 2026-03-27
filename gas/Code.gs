@@ -335,6 +335,18 @@ function getBudget() {
 
 function saveBudget(budgets) {
   const sh = _getOrCreate(B_TAB, ['Category', 'Budget']);
+
+  // Safety guard: refuse to overwrite a larger existing budget with suspiciously
+  // few entries — this prevents partial-state saves from wiping real data.
+  const existing = sh.getLastRow() - 1; // subtract header row
+  const incoming = Object.keys(budgets).length;
+  if (existing > 5 && incoming < existing * 0.5) {
+    throw new Error(
+      'Save blocked: incoming budget has ' + incoming + ' entries but sheet has ' +
+      existing + '. Reload the app and try again.'
+    );
+  }
+
   sh.clearContents();
   sh.appendRow(['Category', 'Budget']);
   _styleHeader(sh, 2);
