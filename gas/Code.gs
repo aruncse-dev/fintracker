@@ -479,14 +479,14 @@ function _geminiProxy(system, prompt, forceTool) {
 function _defaultBudgets() {
   return {
     // ── FIXED ─────────────────────────────────────────────────────────────────
-    'Long Term Loan':56000, 'Jewel Loan':30000,
+    'Jewel Loan':30000, 'Long Term Loan':56000,
     'Insurance':9700,
     'SIP/Savings':11500, 'Rent':5500,
     'Vijaya Amma':6500, 'Staff Salary':18000, 'Internet/Recharge':1900,
     // ── VARIABLE ──────────────────────────────────────────────────────────────
-    'Emergency Fund':6900,
+    'Emergency Fund':6000,
     // Food
-    'Groceries':18000, 'Milk':6000, 'Vegetables':3500, 'Fruits':1500,
+    'Groceries':18000, 'Milk':6000, 'Vegetables':3500, 'Fruits':2000,
     'Food/Eating Out':3500, 'Snacks':1500, 'Meat':4000,
     // Family
     'Education':6500, 'Kids':3000, 'Health & Medical':4500, 'Amma':5000,
@@ -495,7 +495,7 @@ function _defaultBudgets() {
     // Lifestyle
     'Entertainment':1500, 'Travel':4500, 'Gifts/Functions':2000, 'Home Care':3500, 'Maintenance':3000,
     // Utilities
-    'Electricity':3500, 'Cylinder':1500, 'Car':2000, 'Daily Expenses':2500, 'NGO':1000,
+    'Electricity':3500, 'Cylinder':2000, 'Car':2000, 'Daily Expenses':2500,
     // Buffer
     'Others':5000,
   };
