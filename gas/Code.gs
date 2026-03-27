@@ -120,6 +120,10 @@ function _handlePost(body) {
     return deleteRow(body.month, body.year, body.id);
   if (action === 'saveBudget')
     return saveBudget(body.budgets);
+  if (action === 'updateBudgetEntry')
+    return updateBudgetEntry(body.cat, body.amt);
+  if (action === 'deleteBudgetEntry')
+    return deleteBudgetEntry(body.cat);
   if (action === 'saveOpeningBal')
     return saveAccountOpeningBalances(body.data);
   if (action === 'ensureMonth')
@@ -360,6 +364,39 @@ function saveBudget(budgets) {
     sh.setRowHeightsForced(2, rows.length, 24);
   }
   return true;
+}
+
+// Update or insert a single budget row by category name — never clears the sheet.
+function updateBudgetEntry(cat, amt) {
+  const sh = _getOrCreate(B_TAB, ['Category', 'Budget']);
+  const vals = sh.getDataRange().getValues();
+  for (let i = 1; i < vals.length; i++) {
+    if (String(vals[i][0]) === String(cat)) {
+      sh.getRange(i + 1, 2).setValue(parseFloat(amt) || 0)
+        .setNumberFormat('₹#,##,##0.00').setHorizontalAlignment('right');
+      return true;
+    }
+  }
+  // Not found — append a new row
+  sh.appendRow([cat, parseFloat(amt) || 0]);
+  const r = sh.getLastRow();
+  sh.getRange(r, 2).setNumberFormat('₹#,##,##0.00').setHorizontalAlignment('right');
+  sh.getRange(r, 1).setHorizontalAlignment('left');
+  sh.setRowHeightsForced(r, 1, 24);
+  return true;
+}
+
+// Delete a single budget row by category name — never touches other rows.
+function deleteBudgetEntry(cat) {
+  const sh = _getOrCreate(B_TAB, ['Category', 'Budget']);
+  const vals = sh.getDataRange().getValues();
+  for (let i = vals.length - 1; i >= 1; i--) {
+    if (String(vals[i][0]) === String(cat)) {
+      sh.deleteRow(i + 1);
+      return true;
+    }
+  }
+  throw new Error('Budget category not found: ' + cat);
 }
 
 // ── PUBLIC: ACCOUNT OPENING BALANCES ─────────────────────────────────────────

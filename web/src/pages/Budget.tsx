@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { Pencil, Trash2, Plus, RotateCcw, Check, X, AlertTriangle } from 'lucide-react'
 import { useStore } from '../store'
 import { catMap, budgetSummary, INR, catIcon } from '../utils'
@@ -24,36 +24,43 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
   function openDelete(cat: string) { setModal({ mode: 'delete', cat, val: '' }) }
   function closeModal() { setModal({ mode: null, cat: '', val: '' }) }
 
-  const saveBudget = useCallback(async (newBudget: Record<string,number>) => {
-    setSaving(true)
-    try {
-      await api.saveBudget(newBudget)
-      dispatch({ type:'SET_BUDGET', payload: newBudget })
-      showStatus('✓ Budget saved')
-    } catch (e) {
-      showStatus('⚠ ' + (e instanceof Error ? e.message : 'Save failed'))
-    } finally { setSaving(false) }
-  }, [dispatch, showStatus])
-
   async function confirmAdd() {
     const val = parseFloat(modal.val)
     if (!modal.cat || isNaN(val) || val <= 0) { showStatus('⚠ Enter category and amount'); return }
-    await saveBudget({ ...budget, [modal.cat]: val })
-    closeModal()
+    setSaving(true)
+    try {
+      await api.updateBudgetEntry(modal.cat, val)
+      dispatch({ type:'SET_BUDGET', payload: { ...budget, [modal.cat]: val } })
+      showStatus('✓ Budget saved')
+      closeModal()
+    } catch (e) { showStatus('⚠ ' + (e instanceof Error ? e.message : 'Save failed')) }
+    finally { setSaving(false) }
   }
 
   async function confirmEdit() {
     const val = parseFloat(modal.val)
-    if (isNaN(val)) { closeModal(); return }
-    await saveBudget({ ...budget, [modal.cat]: val })
-    closeModal()
+    if (isNaN(val) || val <= 0) { closeModal(); return }
+    setSaving(true)
+    try {
+      await api.updateBudgetEntry(modal.cat, val)
+      dispatch({ type:'SET_BUDGET', payload: { ...budget, [modal.cat]: val } })
+      showStatus('✓ Budget updated')
+      closeModal()
+    } catch (e) { showStatus('⚠ ' + (e instanceof Error ? e.message : 'Save failed')) }
+    finally { setSaving(false) }
   }
 
   async function confirmDelete() {
-    const nb = { ...budget }
-    delete nb[modal.cat]
-    await saveBudget(nb)
-    closeModal()
+    setSaving(true)
+    try {
+      await api.deleteBudgetEntry(modal.cat)
+      const nb = { ...budget }
+      delete nb[modal.cat]
+      dispatch({ type:'SET_BUDGET', payload: nb })
+      showStatus('✓ Budget removed')
+      closeModal()
+    } catch (e) { showStatus('⚠ ' + (e instanceof Error ? e.message : 'Delete failed')) }
+    finally { setSaving(false) }
   }
 
   async function confirmReset() {
