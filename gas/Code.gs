@@ -41,9 +41,13 @@ const C_SAV_FG   = '#92400E';
 function doGet(e) {
   if (e && e.parameter && e.parameter.action) {
     try {
+      Logger.log('doGet params: ' + JSON.stringify(e.parameter));
       _checkToken(e.parameter.token);
-      return _apiJson(_handleGet(e.parameter));
+      const result = _handleGet(e.parameter);
+      Logger.log('doGet result: ' + JSON.stringify(result));
+      return _apiJson(result);
     } catch(err) {
+      Logger.log('doGet error: ' + err.message + ' | Stack: ' + err.stack);
       return _apiJson(err.message, true);
     }
   }
@@ -97,7 +101,11 @@ function _apiJson(data, isError) {
 }
 
 function _handleGet(p) {
-  if (p.module === 'lending') return _lendingHandleGet(p.action);
+  Logger.log('_handleGet module: ' + p.module + ', action: ' + p.action);
+  if (p.module === 'lending') {
+    Logger.log('Routing to lending handler');
+    return _lendingHandleGet(p.action);
+  }
   const action = p.action;
   if (action === 'init') return {
     months:     getMonths(),

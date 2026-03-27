@@ -109,8 +109,3 @@ jobs:
           else
             echo "✓ API is publicly accessible"
           fi
-
-      - name: Trigger web deployment
-        run: gh workflow run deploy-web.yml --repo "$GITHUB_REPOSITORY"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -35,39 +35,98 @@ function setAssetsSheetId(id) {
   return 'ASSETS_SHEET_ID set';
 }
 
+// ── INTERNAL: ensure header row exists at row 1 ────────────────────────────────
+function _ensureLendingHeader(sh) {
+  try {
+    const lastRow = sh.getLastRow();
+    Logger.log('_ensureLendingHeader: lastRow=' + lastRow);
+
+    // If sheet is completely empty, append header
+    if (lastRow === 0) {
+      Logger.log('_ensureLendingHeader: sheet is empty, appending header');
+      sh.appendRow(L_HDR);
+      Logger.log('_ensureLendingHeader: header appended');
+    } else {
+      // Sheet has data, check first row
+      try {
+        const firstRow = sh.getRange(1, 1, 1, L_HDR.length).getValues()[0];
+        const isHeader = L_HDR.every((col, i) => String(firstRow[i] || '').trim() === col);
+
+        if (!isHeader) {
+          Logger.log('_ensureLendingHeader: header incorrect, rebuilding');
+          // Clear row 1 and set header values
+          sh.getRange(1, 1, 1, L_HDR.length).clearContent();
+          for (let i = 0; i < L_HDR.length; i++) {
+            sh.getRange(1, i + 1).setValue(L_HDR[i]);
+          }
+          Logger.log('_ensureLendingHeader: header rebuilt');
+        } else {
+          Logger.log('_ensureLendingHeader: header is correct');
+        }
+      } catch(e) {
+        // If first row check fails, rebuild it
+        Logger.log('_ensureLendingHeader: first row check failed, rebuilding header');
+        try {
+          sh.getRange(1, 1, 1, L_HDR.length).clearContent();
+        } catch(e2) {}
+        for (let i = 0; i < L_HDR.length; i++) {
+          sh.getRange(1, i + 1).setValue(L_HDR[i]);
+        }
+      }
+    }
+
+    // Apply minimal formatting (safer than full styling)
+    try {
+      const hdr = sh.getRange(1, 1, 1, L_HDR.length);
+      hdr.setFontWeight('bold').setBackground('#1E1B4B').setFontColor('#FFFFFF');
+      sh.setFrozenRows(1);
+      Logger.log('_ensureLendingHeader: formatting applied');
+    } catch(e) {
+      Logger.log('_ensureLendingHeader: formatting skipped (' + e.message + ')');
+    }
+
+    // Hide ID column (optional, non-critical)
+    try { sh.hideColumns(1); } catch(e) {}
+  } catch(e) {
+    Logger.log('_ensureLendingHeader ERROR: ' + e.message);
+    throw e;
+  }
+}
+
 // ── INTERNAL: get (or initialise) the Lending sheet ──────────────────────────
 function _lendingSheet() {
-  const ss = SpreadsheetApp.openById(_getSpreadsheetId('ASSETS_SHEET_ID'));
+  Logger.log('_lendingSheet: getting spreadsheet ID');
+  const ssId = _getSpreadsheetId('ASSETS_SHEET_ID');
+  Logger.log('_lendingSheet: opening spreadsheet: ' + ssId);
+
+  const ss = SpreadsheetApp.openById(ssId);
+  Logger.log('_lendingSheet: spreadsheet opened');
 
   let sh = ss.getSheetByName(L_SHEET);
   if (!sh) {
+    Logger.log('_lendingSheet: sheet "' + L_SHEET + '" not found, creating');
     sh = ss.insertSheet(L_SHEET);
     sh.appendRow(L_HDR);
-    // Style header row
-    const hdr = sh.getRange(1, 1, 1, L_HDR.length);
-    hdr.setFontWeight('bold')
-       .setBackground('#1E1B4B')
-       .setFontColor('#FFFFFF')
-       .setFontSize(11)
-       .setHorizontalAlignment('center')
-       .setVerticalAlignment('middle');
-    sh.setRowHeight(1, 32);
-    sh.setFrozenRows(1);
-    // Column widths
-    sh.setColumnWidth(1, 0);   // ID — hide
-    sh.setColumnWidth(2, 100); // Date
-    sh.setColumnWidth(3, 160); // Name
-    sh.setColumnWidth(4, 120); // Amount
-    sh.setColumnWidth(5, 90);  // Type
-    sh.setColumnWidth(6, 240); // Description
-    try { sh.hideColumns(1); } catch(e) {}
+    Logger.log('_lendingSheet: sheet created and header added');
+  } else {
+    Logger.log('_lendingSheet: sheet "' + L_SHEET + '" found');
   }
+
+  // Always ensure header is correct
+  _ensureLendingHeader(sh);
+
   return sh;
 }
 
 // ── ROUTER ────────────────────────────────────────────────────────────────────
 function _lendingHandleGet(action) {
-  if (action === 'getEntries') return _lending_getEntries();
+  Logger.log('_lendingHandleGet action: ' + action);
+  if (action === 'getEntries') {
+    Logger.log('Calling _lending_getEntries');
+    const result = _lending_getEntries();
+    Logger.log('_lending_getEntries returned: ' + result.length + ' entries');
+    return result;
+  }
   throw new Error('Unknown lending GET action: ' + action);
 }
 
@@ -80,23 +139,39 @@ function _lendingHandlePost(action, body) {
 
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
 function _lending_getEntries() {
-  const sh   = _lendingSheet();
-  const vals = sh.getDataRange().getValues();
-  if (vals.length < 2) return [];
+  try {
+    Logger.log('_lending_getEntries: getting sheet');
+    const sh = _lendingSheet();
+    Logger.log('_lending_getEntries: sheet obtained, reading data');
 
-  return vals.slice(1)
-    .filter(r => {
-      const type = String(r[L_COL.TYPE] || '').trim().toUpperCase();
-      return type === 'LEND' || type === 'REPAY';
-    })
-    .map(r => ({
-      id:          String(r[L_COL.ID]   || ''),
-      date:        _fmtDate(r[L_COL.DATE]),
-      name:        String(r[L_COL.NAME] || '').trim(),
-      amount:      parseFloat(r[L_COL.AMT]) || 0,
-      type:        String(r[L_COL.TYPE] || '').trim().toUpperCase(),
-      description: String(r[L_COL.DESC] || '').trim(),
-    }));
+    const vals = sh.getDataRange().getValues();
+    Logger.log('_lending_getEntries: got ' + vals.length + ' rows');
+
+    if (vals.length < 2) {
+      Logger.log('_lending_getEntries: only header row or empty');
+      return [];
+    }
+
+    const result = vals.slice(1)
+      .filter(r => {
+        const type = String(r[L_COL.TYPE] || '').trim().toUpperCase();
+        return type === 'LEND' || type === 'REPAY';
+      })
+      .map(r => ({
+        id:          String(r[L_COL.ID]   || ''),
+        date:        _fmtDate(r[L_COL.DATE]),
+        name:        String(r[L_COL.NAME] || '').trim(),
+        amount:      parseFloat(r[L_COL.AMT]) || 0,
+        type:        String(r[L_COL.TYPE] || '').trim().toUpperCase(),
+        description: String(r[L_COL.DESC] || '').trim(),
+      }));
+
+    Logger.log('_lending_getEntries: returning ' + result.length + ' valid entries');
+    return result;
+  } catch(e) {
+    Logger.log('_lending_getEntries ERROR: ' + e.message);
+    throw e;
+  }
 }
 
 function _lending_addEntry(date, name, amount, type, description) {
