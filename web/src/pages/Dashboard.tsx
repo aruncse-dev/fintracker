@@ -97,10 +97,10 @@ export default function Dashboard({ onAddClick }: Props) {
 
       {/* KPIs */}
       <div className="kpis" style={{marginTop:12}}>
-        <div className="kpi"><div className="kpi-l">Income</div><div className="kpi-v mono" style={{color:'var(--green)'}}>+{INR(inc)}</div></div>
-        <div className="kpi"><div className="kpi-l">Expenses</div><div className="kpi-v mono" style={{color:'var(--red)'}}>−{INR(exp)}</div></div>
-        <div className="kpi"><div className="kpi-l">Credit Cards</div><div className="kpi-v mono" style={{color:'#2563EB'}}>−{INR(cc)}</div></div>
-        <div className="kpi"><div className="kpi-l">Other Credits</div><div className="kpi-v mono" style={{color:'#0891B2'}}>−{INR(ocr)}</div></div>
+        <div className="kpi"><div className="kpi-l">💰 Income</div><div className="kpi-v mono" style={{color:'var(--green)'}}>+{INR(inc)}</div></div>
+        <div className="kpi"><div className="kpi-l">💸 Expenses</div><div className="kpi-v mono" style={{color:'var(--red)'}}>−{INR(exp)}</div></div>
+        <div className="kpi"><div className="kpi-l">💳 Credit Cards</div><div className="kpi-v mono" style={{color:'#2563EB'}}>−{INR(cc)}</div></div>
+        <div className="kpi"><div className="kpi-l">🤝 Other Credits</div><div className="kpi-v mono" style={{color:'#0891B2'}}>−{INR(ocr)}</div></div>
       </div>
 
       {/* Balance hero */}

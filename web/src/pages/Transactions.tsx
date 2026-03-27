@@ -53,7 +53,7 @@ export default function Transactions({ onEdit, onAddClick }: Props) {
               const col = isI?'var(--green)':isS?'var(--amber)':'var(--red)'
               const isCr = (ALL_CR as readonly string[]).includes(r.m)
               return (
-                <div key={r.id} className="txn-card" onClick={() => onEdit(r)}>
+                <div key={r.id} className={`txn-card txn-card-${r.t==='Income'?'inc':r.t==='Transfer'?'trf':r.t==='Savings'?'sav':'exp'}`} onClick={() => onEdit(r)}>
                   <div className="txn-card-top">
                     <span className="txn-card-desc">{r.desc}</span>
                     <span className="txn-card-amt mono" style={{color:col}}>{(isI||isS)?'+':'−'}{INR(r.a)}</span>
