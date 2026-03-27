@@ -44,6 +44,15 @@ export interface InitData {
   openingBal: OpeningBal;
 }
 
+export interface RawLendingRow {
+  id: string;
+  date: string;
+  name: string;
+  amount: number | string;
+  type: string;
+  description: string;
+}
+
 export const api = {
   init:          ()                              => get<InitData>('init'),
   getData:       (month: string, year: string)  => get<Transaction[]>('getData', { month, year }),
@@ -54,6 +63,10 @@ export const api = {
   updateBudgetEntry: (cat: string, amt: number)    => post<boolean>({ action: 'updateBudgetEntry', cat, amt }),
   deleteBudgetEntry: (cat: string)                 => post<boolean>({ action: 'deleteBudgetEntry', cat }),
   saveOpeningBal:(data: OpeningBal)             => post<boolean>({ action: 'saveOpeningBal', data }),
+  getLending:    ()                            => get<RawLendingRow[]>('getEntries', { module: 'lending' }),
+  addLending:    (p: Record<string, unknown>)  => post<string>({ module: 'lending', action: 'addEntry', ...p }),
+  updateLending: (p: Record<string, unknown>)  => post<boolean>({ module: 'lending', action: 'updateEntry', ...p }),
+  deleteLending: (id: string)                  => post<boolean>({ module: 'lending', action: 'deleteEntry', id }),
   configure:     (sheetId: string)              => post<boolean>({ action: 'configure', sheetId }),
   ensureMonth:   (month: string, year: string)  => post<boolean>({ action: 'ensureMonth', month, year }),
   resetBudget:   ()                             => post<Budget>({ action: 'resetBudget' }),

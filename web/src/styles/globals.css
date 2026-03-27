@@ -31,8 +31,31 @@ body {
 .nav-status.show { display: block; }
 .nav-sync { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); color: #fff; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-family: inherit; touch-action: manipulation; }
 
+/* HAMBURGER — mobile only */
+.nav-hamburger { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); color: #fff; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; font-size: 18px; flex-shrink: 0; touch-action: manipulation; }
+@media (min-width: 641px) { .nav-hamburger { display: none; } }
+
+/* MODULE NAV PILLS — desktop only */
+.nav-modules { display: none; align-items: center; gap: 4px; flex-shrink: 1; overflow-x: auto; }
+@media (min-width: 641px) { .nav-modules { display: flex; } }
+
+/* DRAWER OVERLAY */
+.nav-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 150; }
+
+/* DRAWER PANEL */
+.nav-drawer { position: fixed; top: 0; left: 0; height: 100dvh; width: 260px; background: var(--navy-dark); z-index: 160; transform: translateX(-100%); transition: transform .25s ease; display: flex; flex-direction: column; box-shadow: 4px 0 24px rgba(0,0,0,.4); }
+.nav-drawer.open { transform: translateX(0); }
+.nav-drawer-hd { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.nav-drawer-item { display: flex; align-items: center; gap: 12px; padding: 13px 20px; border: none; background: transparent; color: rgba(255,255,255,.75); font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: background .15s, color .15s; touch-action: manipulation; }
+.nav-drawer-item.active { color: #fff; background: rgba(255,255,255,.12); font-weight: 700; }
+.nav-drawer-item:active { background: rgba(255,255,255,.08); }
+
+/* MONTHLY SUB-NAV (month controls below global nav) */
+.nav-sub { background: var(--navy-dark); height: 46px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; position: sticky; top: calc(54px + env(safe-area-inset-top)); z-index: 95; gap: 10px; box-shadow: 0 1px 6px rgba(30,27,75,.2); }
+
 /* TAB BAR */
 .tab-bar { display: flex; background: var(--card); border-bottom: 2px solid var(--border); position: sticky; top: calc(54px + env(safe-area-inset-top)); z-index: 90; }
+.monthly-wrap .tab-bar { top: calc(100px + env(safe-area-inset-top)); }
 .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border: none; border-bottom: 3px solid transparent; margin-bottom: -2px; background: transparent; color: var(--muted); font-size: 10px; font-weight: 500; cursor: pointer; font-family: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: color .15s, border-color .15s; }
 .tab-item.active { color: var(--navy); border-bottom-color: var(--navy); font-weight: 700; }
 .tab-icon { font-size: 18px; line-height: 1; }

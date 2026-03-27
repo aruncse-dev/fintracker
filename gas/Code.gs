@@ -97,6 +97,7 @@ function _apiJson(data, isError) {
 }
 
 function _handleGet(p) {
+  if (p.module === 'lending') return _lendingHandleGet(p.action);
   const action = p.action;
   if (action === 'init') return {
     months:     getMonths(),
@@ -111,6 +112,7 @@ function _handleGet(p) {
 }
 
 function _handlePost(body) {
+  if (body.module === 'lending') return _lendingHandlePost(body.action, body);
   const action = body.action;
   if (action === 'addRow')
     return addRow(body.month, body.year, body.date, body.desc, body.a, body.c, body.t, body.m, body.notes);

@@ -1,43 +1,90 @@
-import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { useState } from 'react'
+import { CalendarDays, Handshake, PiggyBank, Gem, TrendingUp, BarChart2 } from 'lucide-react'
+import React from 'react'
 
-const MNS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] as const
-const CC_CYCLE_DAY = 19
+export type ModuleId = 'monthly' | 'lending' | 'savings' | 'gold' | 'stocks' | 'mutualfunds'
 
-function cycleSubtitle(month: string) {
-  const mi = MNS.indexOf(month as typeof MNS[number])
-  const prevMi = mi === 0 ? 11 : mi - 1
-  return `${CC_CYCLE_DAY} ${MNS[prevMi]} – ${CC_CYCLE_DAY - 1} ${month}`
-}
+interface Props { module: ModuleId; onModule: (id: ModuleId) => void }
 
-interface Props {
-  month: string; year: string; status: string; loading: boolean;
-  onPrev: () => void; onNext: () => void; onSync: () => void;
-}
-export default function Nav({ month, year, status, loading, onPrev, onNext, onSync }: Props) {
+const MODULES: { id: ModuleId; icon: React.ReactNode; label: string }[] = [
+  { id: 'monthly',     icon: <CalendarDays size={15} />, label: 'Monthly' },
+  { id: 'lending',     icon: <Handshake size={15} />,    label: 'Lending' },
+  { id: 'savings',     icon: <PiggyBank size={15} />,    label: 'Savings' },
+  { id: 'gold',        icon: <Gem size={15} />,          label: 'Gold' },
+  { id: 'stocks',      icon: <TrendingUp size={15} />,   label: 'Stocks' },
+  { id: 'mutualfunds', icon: <BarChart2 size={15} />,    label: 'Mutual Funds' },
+]
+
+const MODULES_LG: { id: ModuleId; icon: React.ReactNode; label: string }[] = [
+  { id: 'monthly',     icon: <CalendarDays size={18} />, label: 'Monthly' },
+  { id: 'lending',     icon: <Handshake size={18} />,    label: 'Lending' },
+  { id: 'savings',     icon: <PiggyBank size={18} />,    label: 'Savings' },
+  { id: 'gold',        icon: <Gem size={18} />,          label: 'Gold' },
+  { id: 'stocks',      icon: <TrendingUp size={18} />,   label: 'Stocks' },
+  { id: 'mutualfunds', icon: <BarChart2 size={18} />,    label: 'Mutual Funds' },
+]
+
+export default function Nav({ module, onModule }: Props) {
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
   return (
-    <nav className="nav">
-      {/* Brand — left */}
-      <span className="nav-b" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <img src="./apple-touch-icon.png" width="30" height="30" alt="FinTracker" style={{borderRadius:8,flexShrink:0,objectFit:'contain',background:'#1E3A8A'}} />
-        FinTracker
-      </span>
+    <>
+      <nav className="nav">
+        {/* Brand — left */}
+        <span className="nav-b" style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+          <img src="./apple-touch-icon.png" width="30" height="30" alt="FinTracker" style={{borderRadius:8,flexShrink:0,objectFit:'contain',background:'#1E3A8A'}} />
+          FinTracker
+        </span>
 
-      {/* Status — centre */}
-      {status && <span className="nav-status show">{status}</span>}
+        {/* Hamburger — mobile only */}
+        <button className="nav-hamburger" onClick={() => setDrawerOpen(true)}>☰</button>
 
-      {/* Month nav — right */}
-      <div className="nav-month">
-        <button className="nav-arrow" onClick={onPrev}><ChevronLeft size={16} /></button>
-        <div className="nav-ml">
-          {month} {year}
-          <div style={{ fontSize: 9, opacity: .65, fontWeight: 400 }}>{cycleSubtitle(month)}</div>
+        {/* Module nav pills — desktop only */}
+        <div className="nav-modules">
+          {MODULES.map(m => (
+            <button
+              key={m.id}
+              onClick={() => onModule(m.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 12, fontWeight: module === m.id ? 700 : 500,
+                color: module === m.id ? '#fff' : 'rgba(255,255,255,0.6)',
+                background: module === m.id ? 'rgba(255,255,255,0.18)' : 'transparent',
+                whiteSpace: 'nowrap', transition: 'color .15s, background .15s',
+                flexShrink: 0,
+              }}
+            >
+              {m.icon}
+              <span>{m.label}</span>
+            </button>
+          ))}
         </div>
-        <button className="nav-arrow" onClick={onNext}><ChevronRight size={16} /></button>
-      </div>
+      </nav>
 
-      <button className="nav-sync" onClick={onSync} disabled={loading} style={{ marginLeft: 6 }}>
-        {loading ? '…' : <RefreshCw size={13} />}
-      </button>
-    </nav>
+      {/* Overlay — closes drawer on outside click */}
+      {drawerOpen && <div className="nav-overlay" onClick={() => setDrawerOpen(false)} />}
+
+      {/* Drawer panel */}
+      <div className={`nav-drawer${drawerOpen ? ' open' : ''}`}>
+        <div className="nav-drawer-hd">
+          <span className="nav-b" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <img src="./apple-touch-icon.png" width="28" height="28" alt="FinTracker" style={{borderRadius:7,flexShrink:0,objectFit:'contain',background:'#1E3A8A'}} />
+            FinTracker
+          </span>
+          <button className="modal-close" onClick={() => setDrawerOpen(false)}>×</button>
+        </div>
+        {MODULES_LG.map(m => (
+          <button
+            key={m.id}
+            className={`nav-drawer-item${module === m.id ? ' active' : ''}`}
+            onClick={() => { onModule(m.id); setDrawerOpen(false) }}
+          >
+            {m.icon}
+            <span>{m.label}</span>
+          </button>
+        ))}
+      </div>
+    </>
   )
 }
