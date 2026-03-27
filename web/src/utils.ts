@@ -27,12 +27,14 @@ export function dateKey(s: string): number {
   return parseInt('20' + m[3]) * 10000 + (mo + 1) * 100 + parseInt(m[1]);
 }
 
-export function catMap(rows: Transaction[], budget: Budget): Record<string, number> {
-  const validCats = new Set(Object.keys(budget));
+// Each expense counts under its own category key.
+// Do NOT remap unknown categories to 'Others' — that inflates Others when
+// a budget category is deleted or the AI assigns a category not in the budget,
+// causing false overspend on the Others row.
+export function catMap(rows: Transaction[], _budget?: Budget): Record<string, number> {
   const cm: Record<string, number> = {};
   rows.filter(r => r.t === 'Expense').forEach(r => {
-    const cat = validCats.has(r.c) ? r.c : 'Others';
-    cm[cat] = (cm[cat] || 0) + r.a;
+    cm[r.c] = (cm[r.c] || 0) + r.a;
   });
   return cm;
 }
