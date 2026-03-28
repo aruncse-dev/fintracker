@@ -185,47 +185,71 @@ function _lending_getEntries() {
 }
 
 function _lending_addEntry(date, name, amount, type, description) {
-  const sh  = _lendingSheet();
-  const id  = Utilities.getUuid();
-  const amt = parseFloat(amount) || 0;
-  sh.appendRow([id, date || '', String(name || '').trim(), amt, String(type || '').toUpperCase(), String(description || '').trim()]);
+  try {
+    Logger.log('_lending_addEntry: date=' + date + ', name=' + name + ', amount=' + amount + ', type=' + type);
+    const sh  = _lendingSheet();
+    const id  = Utilities.getUuid();
+    const amt = parseFloat(amount) || 0;
+    Logger.log('_lending_addEntry: appending row with id=' + id);
+    sh.appendRow([id, date || '', String(name || '').trim(), amt, String(type || '').toUpperCase(), String(description || '').trim()]);
 
-  const row = sh.getLastRow();
-  _lendingStyleRow(sh, row, String(type || ''));
-  return id;
+    const row = sh.getLastRow();
+    _lendingStyleRow(sh, row, String(type || ''));
+    Logger.log('_lending_addEntry: success, id=' + id);
+    return id;
+  } catch(e) {
+    Logger.log('_lending_addEntry ERROR: ' + e.message);
+    throw e;
+  }
 }
 
 function _lending_updateEntry(id, date, name, amount, type, description) {
-  const sh   = _lendingSheet();
-  const vals = sh.getDataRange().getValues();
-  for (let i = 1; i < vals.length; i++) {
-    if (String(vals[i][L_COL.ID]) === String(id)) {
-      const amt = parseFloat(amount) || 0;
-      sh.getRange(i + 1, 1, 1, L_HDR.length).setValues([[
-        id,
-        date || '',
-        String(name || '').trim(),
-        amt,
-        String(type || '').toUpperCase(),
-        String(description || '').trim(),
-      ]]);
-      _lendingStyleRow(sh, i + 1, String(type || ''));
-      return true;
+  try {
+    Logger.log('_lending_updateEntry: id=' + id + ', name=' + name + ', amount=' + amount);
+    const sh   = _lendingSheet();
+    const vals = sh.getDataRange().getValues();
+    for (let i = 1; i < vals.length; i++) {
+      if (String(vals[i][L_COL.ID]) === String(id)) {
+        Logger.log('_lending_updateEntry: found entry at row ' + (i + 1));
+        const amt = parseFloat(amount) || 0;
+        sh.getRange(i + 1, 1, 1, L_HDR.length).setValues([[
+          id,
+          date || '',
+          String(name || '').trim(),
+          amt,
+          String(type || '').toUpperCase(),
+          String(description || '').trim(),
+        ]]);
+        _lendingStyleRow(sh, i + 1, String(type || ''));
+        Logger.log('_lending_updateEntry: success');
+        return true;
+      }
     }
+    throw new Error('Lending entry not found: ' + id);
+  } catch(e) {
+    Logger.log('_lending_updateEntry ERROR: ' + e.message);
+    throw e;
   }
-  throw new Error('Lending entry not found: ' + id);
 }
 
 function _lending_deleteEntry(id) {
-  const sh   = _lendingSheet();
-  const vals = sh.getDataRange().getValues();
-  for (let i = vals.length - 1; i >= 1; i--) {
-    if (String(vals[i][L_COL.ID]) === String(id)) {
-      sh.deleteRow(i + 1);
-      return true;
+  try {
+    Logger.log('_lending_deleteEntry: id=' + id);
+    const sh   = _lendingSheet();
+    const vals = sh.getDataRange().getValues();
+    for (let i = vals.length - 1; i >= 1; i--) {
+      if (String(vals[i][L_COL.ID]) === String(id)) {
+        Logger.log('_lending_deleteEntry: found entry at row ' + (i + 1));
+        sh.deleteRow(i + 1);
+        Logger.log('_lending_deleteEntry: success');
+        return true;
+      }
     }
+    throw new Error('Lending entry not found: ' + id);
+  } catch(e) {
+    Logger.log('_lending_deleteEntry ERROR: ' + e.message);
+    throw e;
   }
-  throw new Error('Lending entry not found: ' + id);
 }
 
 // ── FORMATTING ────────────────────────────────────────────────────────────────

@@ -22,6 +22,13 @@ interface FormState {
 }
 
 function todayISO() { return new Date().toISOString().split('T')[0] }
+function toDateInput(dateStr: string): string {
+  try {
+    return new Date(dateStr).toISOString().split('T')[0]
+  } catch {
+    return todayISO()
+  }
+}
 function emptyForm(): FormState { return { type: 'LEND', name: '', amount: '', date: todayISO(), description: '' } }
 function INR(n: number) { return '₹' + n.toLocaleString('en-IN') }
 
@@ -40,6 +47,32 @@ function parseRow(raw: RawLendingRow): LendingEntry | null {
   }
 }
 
+interface PersonTotal {
+  name: string
+  outstanding: number
+  count: number
+}
+
+function groupByPerson(entries: LendingEntry[]): PersonTotal[] {
+  const grouped = new Map<string, { lend: number; repay: number; count: number }>()
+
+  entries.forEach(e => {
+    const existing = grouped.get(e.name) || { lend: 0, repay: 0, count: 0 }
+    if (e.type === 'LEND') existing.lend += e.amount
+    else existing.repay += e.amount
+    existing.count += 1
+    grouped.set(e.name, existing)
+  })
+
+  return Array.from(grouped.entries())
+    .map(([name, { lend, repay, count }]) => ({
+      name,
+      outstanding: lend - repay,
+      count,
+    }))
+    .sort((a, b) => Math.abs(b.outstanding) - Math.abs(a.outstanding))
+}
+
 export default function Lending() {
   const [entries, setEntries] = useState<LendingEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,6 +82,7 @@ export default function Lending() {
   const [form, setForm] = useState<FormState>(emptyForm())
   const [saving, setSaving] = useState(false)
   const [delConfirm, setDelConfirm] = useState(false)
+  const [tab, setTab] = useState<'dashboard' | 'lending' | 'repayments'>('dashboard')
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -78,7 +112,7 @@ export default function Lending() {
 
   function openEdit(e: LendingEntry) {
     setEditEntry(e)
-    setForm({ type: e.type, name: e.name, amount: String(e.amount), date: e.date, description: e.description })
+    setForm({ type: e.type, name: e.name, amount: String(e.amount), date: toDateInput(e.date), description: e.description })
     setDelConfirm(false)
     setModalOpen(true)
   }
@@ -118,8 +152,23 @@ export default function Lending() {
   const totalRepaid = entries.filter(e => e.type === 'REPAY').reduce((s, e) => s + e.amount, 0)
   const outstanding = totalLent - totalRepaid
 
+  const filteredEntries = tab === 'lending' ? entries.filter(e => e.type === 'LEND') : tab === 'repayments' ? entries.filter(e => e.type === 'REPAY') : entries
+
   return (
     <div className="pg">
+      {/* Tab Navigation */}
+      <div className="tab-bar" style={{ marginBottom: 16 }}>
+        {['dashboard', 'lending', 'repayments'].map(tabName => (
+          <button
+            key={tabName}
+            className={`tab-item ${tab === tabName ? 'active' : ''}`}
+            onClick={() => setTab(tabName as typeof tab)}
+            style={{ flex: 1, textTransform: 'capitalize' }}
+          >
+            {tabName}
+          </button>
+        ))}
+      </div>
       {/* Summary */}
       <div className="kpis" style={{ marginBottom: 16 }}>
         <div className="card" style={{ padding: '10px 14px' }}>
@@ -136,10 +185,39 @@ export default function Lending() {
         </div>
       </div>
 
+      {/* Summary by Person - Dashboard only */}
+      {!loading && entries.length > 0 && tab === 'dashboard' && (
+        <div className="sec" style={{ marginBottom: 20 }}>
+          <div className="sec-h">Per Person</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {groupByPerson(entries).map(person => (
+              <div
+                key={person.name}
+                className="card"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px' }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>{person.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{person.count} transaction{person.count !== 1 ? 's' : ''}</div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: person.outstanding > 0 ? '#EF4444' : person.outstanding < 0 ? '#10B981' : 'var(--text)' }}>
+                    {INR(Math.abs(person.outstanding))}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>
+                    {person.outstanding > 0 ? 'to receive' : person.outstanding < 0 ? 'to pay' : 'settled'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Entries */}
       <div className="sec">
         <div className="sec-h" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>Entries</span>
+          <span>{tab === 'dashboard' ? 'All Entries' : tab === 'lending' ? 'Lending' : 'Repayments'}</span>
           <button className="btn btn-sm" style={{ gap: 5 }} onClick={openAdd}>
             <Plus size={14} /> Add
           </button>
@@ -151,11 +229,11 @@ export default function Lending() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '1rem 0', color: 'var(--muted)', fontSize: 14 }}>
             <Loader2 size={16} className="spin-icon" /> Loading…
           </div>
-        ) : entries.length === 0 ? (
+        ) : filteredEntries.length === 0 ? (
           <p style={{ color: 'var(--muted)', padding: '1rem 0', fontSize: 14 }}>No entries yet.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-            {entries.map(e => (
+            {filteredEntries.map(e => (
               <div
                 key={e.id}
                 className="card"
