@@ -39,6 +39,11 @@ const C_SAV_FG   = '#92400E';
 
 // ── ENTRY POINTS ──────────────────────────────────────────────────────────────
 function doGet(e) {
+  // OAuth callback from Upstox (has 'code' param, no 'action' param)
+  if (e && e.parameter && e.parameter.code && !e.parameter.action) {
+    return _handleUpstoxOAuthCallback(e.parameter);
+  }
+
   if (e && e.parameter && e.parameter.action) {
     try {
       const traceId = e.parameter.traceId;
@@ -71,6 +76,31 @@ function doPost(e) {
   } catch(err) {
     if (traceId) Logger.log('TRACE error:' + traceId);
     return _apiJson(err.message, true, undefined, traceId);
+  }
+}
+
+function _handleUpstoxOAuthCallback(params) {
+  try {
+    const code = params.code;
+    Logger.log('OAuth callback received with code');
+    _upstox_exchangeCode(code);
+    return HtmlService.createHtmlOutput(
+      '<html><body style="font-family: Arial, sans-serif; padding: 2rem; text-align: center;">' +
+      '<h2 style="color: #16A34A;">✅ Upstox Connected!</h2>' +
+      '<p>Your access token has been saved.</p>' +
+      '<p>You can now close this tab and return to FinanceTracker.</p>' +
+      '<p>Your stocks will sync automatically every day.</p>' +
+      '</body></html>'
+    );
+  } catch(e) {
+    Logger.log('OAuth error: ' + e.toString());
+    return HtmlService.createHtmlOutput(
+      '<html><body style="font-family: Arial, sans-serif; padding: 2rem; text-align: center;">' +
+      '<h2 style="color: #DC2626;">❌ Connection Failed</h2>' +
+      '<p>' + e.message + '</p>' +
+      '<p>Please try again or check the Apps Script logs for details.</p>' +
+      '</body></html>'
+    );
   }
 }
 
@@ -127,6 +157,10 @@ function _handleGet(p) {
     Logger.log('_handleGet: routing to savings handler for action=' + p.action);
     return _savingsHandleGet(p.action);
   }
+  if (p.module === 'stocks' || p.module === 'mutualfunds') {
+    Logger.log('_handleGet: routing to portfolio handler for module=' + p.module + ', action=' + p.action);
+    return _portfolioHandleGet(p.module, p.action);
+  }
   const action = p.action;
   if (action === 'init') return {
     months:     getMonths(),
@@ -150,6 +184,10 @@ function _handlePost(body) {
   if (body.module === 'savings') {
     Logger.log('_handlePost: routing to savings handler for action=' + body.action);
     return _savingsHandlePost(body.action, body);
+  }
+  if (body.module === 'stocks' || body.module === 'mutualfunds') {
+    Logger.log('_handlePost: routing to portfolio handler for module=' + body.module + ', action=' + body.action);
+    return _portfolioHandlePost(body.module, body.action, body);
   }
   const action = body.action;
   if (action === 'addRow')

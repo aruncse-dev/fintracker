@@ -90,6 +90,18 @@ export interface RawSavingsRow {
   toAccount?: string;
 }
 
+export interface RawHolding {
+  symbol: string;
+  company: string;
+  isin: string;
+  qty: number;
+  avgPrice: number;
+  lastPrice: number;
+  pnl: number;
+  dayChangePct: number;
+  synced: string;
+}
+
 export const api = {
   init:          ()                              => get<InitData>('init'),
   getData:       (month: string, year: string)  => get<Transaction[]>('getData', { month, year }),
@@ -108,6 +120,13 @@ export const api = {
   addSavings:    (p: Record<string, unknown>)  => post<string>({ module: 'savings', action: 'addEntry', ...p }),
   updateSavings: (p: Record<string, unknown>)  => post<boolean>({ module: 'savings', action: 'updateEntry', ...p }),
   deleteSavings: (id: string)                  => post<boolean>({ module: 'savings', action: 'deleteEntry', id }),
+  getTokenStatus: ()                           => get<{ hasToken: boolean }>('getTokenStatus', { module: 'stocks' }),
+  getUpstoxAuthUrl: ()                         => get<{ authUrl: string }>('getAuthUrl', { module: 'stocks' }),
+  setUpstoxToken: (token: string)              => post<boolean>({ module: 'stocks', action: 'setToken', token }),
+  getStocks:      ()                           => get<RawHolding[]>('getHoldings', { module: 'stocks' }),
+  syncStocks:     ()                           => post<{ count: number }>({ module: 'stocks', action: 'sync' }),
+  getMutualFunds: ()                           => get<RawHolding[]>('getHoldings', { module: 'mutualfunds' }),
+  syncMutualFunds: ()                          => post<{ count: number }>({ module: 'mutualfunds', action: 'sync' }),
   configure:     (expensesSheetId: string, assetsSheetId?: string) => post<boolean>({ action: 'configure', expensesSheetId, assetsSheetId }),
   ensureMonth:   (month: string, year: string)  => post<boolean>({ action: 'ensureMonth', month, year }),
   resetBudget:   ()                             => post<Budget>({ action: 'resetBudget' }),
