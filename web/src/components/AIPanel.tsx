@@ -120,7 +120,7 @@ export default function AIPanel({ open, onClose, onSaved }: Props) {
     const analysisPrompt = [
       'You are a personal finance assistant for a family in India.',
       'Monthly income: ₹2,38,000. Fixed: Loan EMI ₹56k, Jewel Loan ₹30k, Insurance ₹9.7k, SIP ₹11.5k, Rent ₹5.5k, Vijaya Amma ₹6.5k, Staff ₹18k.',
-      `${ctx.month}: Income ₹${ctx.inc}, Expenses ₹${ctx.exp}.`,
+      `${ctx.month}: Income ${INR(ctx.inc)}, Expenses ${INR(ctx.exp)}.`,
       `Spending: ${JSON.stringify(ctx.allCats)}.`,
       `Overspent: ${JSON.stringify(ctx.overspent)}.`,
       `Balances: ${JSON.stringify(ctx.accounts)}.`,

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { StoreProvider } from './store'
 import Nav, { ModuleId } from './components/Nav'
+import ErrorScreen from './components/ErrorScreen'
 import Monthly from './pages/Monthly'
 import Lending from './pages/Lending'
 import Savings from './pages/Savings'
@@ -45,6 +46,36 @@ function Inner() {
       <InstallBanner />
     </div>
   )
+}
+
+// Error boundary wrapper
+function AppWithErrorBoundary() {
+  const [apiError, setApiError] = useState<string | null>(null)
+  const [shouldRetry, setShouldRetry] = useState(false)
+
+  useEffect(() => {
+    setShouldRetry(false)
+  }, [shouldRetry])
+
+  // Catch unhandled promise rejections
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const msg = event.reason?.message || String(event.reason) || ''
+      if (msg.includes('GAS') && msg.includes('deployed')) {
+        setApiError(msg)
+        event.preventDefault()
+      }
+    }
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection)
+    return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection)
+  }, [])
+
+  if (apiError) {
+    return <ErrorScreen error={apiError} onRetry={() => setApiError(null)} />
+  }
+
+  return <Inner />
 }
 
 function tryOAuthCallback(): boolean {
@@ -108,5 +139,5 @@ function LoginScreen() {
 export default function App() {
   const [authed] = useState(() => tryOAuthCallback() || localStorage.getItem('ft_auth') === '1')
   if (!authed) return <LoginScreen />
-  return <StoreProvider><Inner /></StoreProvider>
+  return <StoreProvider><AppWithErrorBoundary /></StoreProvider>
 }

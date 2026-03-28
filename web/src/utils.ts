@@ -1,8 +1,26 @@
 import { Transaction, Budget, OpeningBal } from './types';
 import { ACCOUNTS, CC_MODES, OTHER_CR, ALL_CR, MNS } from './constants';
 
+/**
+ * Format number as Indian Rupee with Indian numbering system
+ * Examples: 1234 → ₹1,234 | 123456 → ₹1,23,456
+ * Handles decimals: show only if significant (not .00)
+ */
 export function INR(n: number): string {
-  return '₹' + Math.abs(Math.round(n)).toLocaleString('en-IN');
+  const abs = Math.abs(n);
+  const hasDecimals = abs % 1 !== 0;
+
+  if (hasDecimals) {
+    // Show decimals only if significant
+    const formatted = abs.toLocaleString('en-IN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+    return '₹' + formatted;
+  }
+
+  // No decimals
+  return '₹' + Math.round(abs).toLocaleString('en-IN');
 }
 
 export function fd(s: string): string {

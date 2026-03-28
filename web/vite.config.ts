@@ -4,7 +4,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd())
   const gasUrl = env.VITE_GAS_URL || ''
-  const apiUrl = env.VITE_API_URL || (mode === 'development' ? '/gas-proxy' : '')
+
+  // In development, use direct GAS URL if available, otherwise use proxy
+  const apiUrl = env.VITE_API_URL || (mode === 'development' ? (gasUrl || '/gas-proxy') : '')
 
   return {
     plugins: [react()],
@@ -13,7 +15,7 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_API_URL': JSON.stringify(apiUrl)
     },
     server: mode === 'development' ? {
-      proxy: {
+      proxy: gasUrl ? {
         '/gas-proxy': {
           target: gasUrl,
           changeOrigin: true,
@@ -25,12 +27,14 @@ export default defineConfig(({ mode }) => {
                 const bodyData = JSON.stringify(req.body)
                 proxyReq.setHeader('Content-Type', 'application/json')
                 proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
-                proxyReq.write(bodyData)
               }
+            })
+            proxy.on('error', (err) => {
+              console.error('[GAS Proxy Error]', err.message)
             })
           }
         }
-      }
+      } : undefined
     } : undefined
   }
 })
