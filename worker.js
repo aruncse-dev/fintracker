@@ -39,18 +39,16 @@ export default {
     }
 
     try {
+      // Preserve full URL with query parameters, replace hostname/pathname with GAS
       const url = new URL(request.url)
-      const targetUrl = new URL(GAS_EXEC_URL)
-
-      // Forward all query parameters
-      url.searchParams.forEach((value, key) => {
-        targetUrl.searchParams.set(key, value)
-      })
+      const gasUrl = new URL(GAS_EXEC_URL)
+      url.hostname = gasUrl.hostname
+      url.pathname = gasUrl.pathname
 
       // Get body for non-GET requests
       const body = request.method !== 'GET' ? await request.text() : null
 
-      const response = await fetch(targetUrl.toString(), {
+      const response = await fetch(url.toString(), {
         method: request.method,
         headers: {
           'Content-Type': 'application/json'
