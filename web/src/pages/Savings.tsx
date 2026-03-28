@@ -285,13 +285,6 @@ export default function Savings() {
   }, [loadData]);
 
   // Handlers
-  function openAdd() {
-    setEditEntry(null);
-    setForm(emptyForm());
-    setDelConfirm(false);
-    setModalOpen(true);
-  }
-
   function openEdit(e: SavingsEntry) {
     setEditEntry(e);
     setForm({
@@ -359,245 +352,244 @@ export default function Savings() {
   // ────────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="pg" style={{ paddingBottom: 80 }}>
+    <div style={{ paddingBottom: 80 }}>
       {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
-        <button
-          className="btn btn-sm"
-          style={{
-            background: activeTab === 'dashboard' ? 'var(--navy)' : 'var(--border)',
-            color: activeTab === 'dashboard' ? '#fff' : 'var(--text)',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-            gap: 6,
-          }}
-          onClick={() => setActiveTab('dashboard')}
-        >
-          <LayoutDashboard size={14} /> Dashboard
+      <nav className="tab-bar">
+        <button className={`tab-item${activeTab === 'dashboard' ? ' active' : ''}`} onClick={() => setActiveTab('dashboard')}>
+          <span className="tab-icon"><LayoutDashboard size={19} /></span>
+          <span>Dashboard</span>
         </button>
-        <button
-          className="btn btn-sm"
-          style={{
-            background: activeTab === 'transactions' ? 'var(--navy)' : 'var(--border)',
-            color: activeTab === 'transactions' ? '#fff' : 'var(--text)',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-            gap: 6,
-          }}
-          onClick={() => setActiveTab('transactions')}
-        >
-          <List size={14} /> Transactions
+        <button className={`tab-item${activeTab === 'transactions' ? ' active' : ''}`} onClick={() => setActiveTab('transactions')}>
+          <span className="tab-icon"><List size={19} /></span>
+          <span>Transactions</span>
         </button>
+      </nav>
+
+      <div className="pg">
+
+        {/* DASHBOARD TAB */}
+        {activeTab === 'dashboard' && (
+          <>
+            {/* KPI row */}
+            <div className="kpis" style={{ marginBottom: 20 }}>
+              <div className="card" style={{ padding: '10px 14px' }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>
+                  Total Balance
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
+                  {INR(totalBalance)}
+                </div>
+              </div>
+              <div className="card" style={{ padding: '10px 14px' }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>
+                  Total Income
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#10B981' }}>
+                  {INR(totalIncome)}
+                </div>
+              </div>
+              <div className="card" style={{ padding: '10px 14px' }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>
+                  Total Expenses
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#EF4444' }}>
+                  {INR(totalExpenses)}
+                </div>
+              </div>
+            </div>
+
+            {/* Account balance cards */}
+            <div className="sec" style={{ marginBottom: 20 }}>
+              <div className="sec-h" style={{ marginBottom: 12 }}>Accounts</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {ACCOUNTS.map(acc => (
+                  <AccountBalanceCard key={acc} name={acc} balance={balances[acc]} />
+                ))}
+              </div>
+            </div>
+
+            {/* Donut chart */}
+            <div className="sec">
+              <div className="sec-h" style={{ marginBottom: 12 }}>Balance Distribution</div>
+              <div className="card" style={{ padding: 16 }}>
+                <DonutChart balances={balances} />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* TRANSACTIONS TAB */}
+        {activeTab === 'transactions' && (
+          <>
+            {/* Search bar */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'var(--card)',
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+              marginBottom: 16,
+            }}>
+              <Search size={16} style={{ color: 'var(--muted)' }} />
+              <input
+                type="text"
+                placeholder="Search desc, account, type…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--text)',
+                  outline: 'none',
+                  fontSize: 14,
+                }}
+              />
+              {search && (
+                <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)' }}>
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            {/* Filter pills */}
+            <div className="sec" style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 6, flex: 1, flexWrap: 'wrap' }}>
+                {TYPE_FILTERS.map(f => (
+                  <button
+                    key={f}
+                    className="btn btn-sm"
+                    style={{
+                      background: typeFilter === f ? 'var(--navy)' : 'var(--border)',
+                      color: typeFilter === f ? '#fff' : 'var(--text)',
+                      whiteSpace: 'nowrap',
+                    }}
+                    onClick={() => setTypeFilter(f)}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Loading */}
+            {loading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '1rem 0', color: 'var(--muted)', fontSize: 14 }}>
+                <Loader2 size={16} className="spin-icon" /> Loading…
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!loading && filteredEntries.length === 0 && (
+              <p style={{ color: 'var(--muted)', padding: '1rem 0', fontSize: 14 }}>No entries to display.</p>
+            )}
+
+            {/* Mobile cards */}
+            {!loading && filteredEntries.length > 0 && (
+              <div className="txn-cards">
+                {filteredEntries.map(e => (
+                  <div
+                    key={e.id}
+                    className="txn-card"
+                    style={{
+                      cursor: 'pointer',
+                      borderLeft: `4px solid ${typeColor(e.type)}`,
+                    }}
+                    onClick={() => openEdit(e)}
+                  >
+                    <div className="txn-card-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 500, color: 'var(--text)' }}>{e.desc || e.account}</span>
+                      <span className="mono" style={{ color: typeColor(e.type), fontWeight: 700 }}>
+                        {e.type === 'Income' ? '+' : '−'}{INR(e.amount)}
+                      </span>
+                    </div>
+                    <div className="txn-card-bot" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>{e.date}</span>
+                      <span style={{ fontSize: 11, color: ACCOUNT_COLORS[e.account], fontWeight: 600 }}>{e.account}</span>
+                      <TypeBadge type={e.type} />
+                      {e.type === 'Transfer' && e.toAccount && (
+                        <span style={{ fontSize: 10, color: 'var(--muted)' }}>→ {e.toAccount}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Desktop table */}
+            {!loading && filteredEntries.length > 0 && (
+              <div className="tw txn-table">
+                <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Date</th>
+                        <th>Account</th>
+                        <th>Amount</th>
+                        <th>Desc</th>
+                        <th>Type</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredEntries.map(e => (
+                        <tr key={e.id}>
+                          <td style={{ color: 'var(--muted)', fontSize: 11 }}>{e.id.slice(0, 8)}</td>
+                          <td>{e.date}</td>
+                          <td>
+                            <span style={{ color: ACCOUNT_COLORS[e.account], fontWeight: 500 }}>{e.account}</span>
+                          </td>
+                          <td className="mono" style={{ color: typeColor(e.type), fontWeight: 700 }}>
+                            {INR(e.amount)}
+                          </td>
+                          <td>{e.desc}</td>
+                          <td>
+                            <TypeBadge type={e.type} />
+                          </td>
+                          <td>
+                            <button
+                              className="icon-btn"
+                              onClick={() => openEdit(e)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)' }}
+                            >
+                              <Pencil size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+
+        {/* Error message */}
+        {error && (
+          <p style={{ color: '#EF4444', fontSize: 13, padding: '12px 10px', marginTop: 12 }}>
+            ⚠ {error}
+          </p>
+        )}
       </div>
 
-      {/* DASHBOARD TAB */}
-      {activeTab === 'dashboard' && (
-        <>
-          {/* KPI row */}
-          <div className="kpis" style={{ marginBottom: 20 }}>
-            <div className="card" style={{ padding: '10px 14px' }}>
-              <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>
-                Total Balance
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
-                {INR(totalBalance)}
-              </div>
-            </div>
-            <div className="card" style={{ padding: '10px 14px' }}>
-              <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>
-                Total Income
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#10B981' }}>
-                {INR(totalIncome)}
-              </div>
-            </div>
-            <div className="card" style={{ padding: '10px 14px' }}>
-              <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>
-                Total Expenses
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#EF4444' }}>
-                {INR(totalExpenses)}
-              </div>
-            </div>
-          </div>
-
-          {/* Account balance cards */}
-          <div className="sec" style={{ marginBottom: 20 }}>
-            <div className="sec-h" style={{ marginBottom: 12 }}>Accounts</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              {ACCOUNTS.map(acc => (
-                <AccountBalanceCard key={acc} name={acc} balance={balances[acc]} />
-              ))}
-            </div>
-          </div>
-
-          {/* Donut chart */}
-          <div className="sec">
-            <div className="sec-h" style={{ marginBottom: 12 }}>Balance Distribution</div>
-            <div className="card" style={{ padding: 16 }}>
-              <DonutChart balances={balances} />
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* TRANSACTIONS TAB */}
-      {activeTab === 'transactions' && (
-        <>
-          {/* Search bar */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            background: 'var(--card)',
-            padding: '8px 12px',
-            borderRadius: 8,
-            border: '1px solid var(--border)',
-            marginBottom: 16,
-          }}>
-            <Search size={16} style={{ color: 'var(--muted)' }} />
-            <input
-              type="text"
-              placeholder="Search desc, account, type…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{
-                flex: 1,
-                border: 'none',
-                background: 'transparent',
-                color: 'var(--text)',
-                outline: 'none',
-                fontSize: 14,
-              }}
-            />
-            {search && (
-              <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)' }}>
-                <X size={16} />
-              </button>
-            )}
-          </div>
-
-          {/* Filter pills + Add button */}
-          <div className="sec" style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', gap: 6, flex: 1, flexWrap: 'wrap' }}>
-              {TYPE_FILTERS.map(f => (
-                <button
-                  key={f}
-                  className="btn btn-sm"
-                  style={{
-                    background: typeFilter === f ? 'var(--navy)' : 'var(--border)',
-                    color: typeFilter === f ? '#fff' : 'var(--text)',
-                    whiteSpace: 'nowrap',
-                  }}
-                  onClick={() => setTypeFilter(f)}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-            <button className="btn btn-sm btn-green" style={{ gap: 5 }} onClick={openAdd}>
-              <Plus size={14} /> Add
-            </button>
-          </div>
-
-          {/* Loading */}
-          {loading && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '1rem 0', color: 'var(--muted)', fontSize: 14 }}>
-              <Loader2 size={16} className="spin-icon" /> Loading…
-            </div>
-          )}
-
-          {/* Empty state */}
-          {!loading && filteredEntries.length === 0 && (
-            <p style={{ color: 'var(--muted)', padding: '1rem 0', fontSize: 14 }}>No entries to display.</p>
-          )}
-
-          {/* Mobile cards */}
-          {!loading && filteredEntries.length > 0 && (
-            <div className="txn-cards">
-              {filteredEntries.map(e => (
-                <div
-                  key={e.id}
-                  className="txn-card"
-                  style={{
-                    cursor: 'pointer',
-                    borderLeft: `4px solid ${typeColor(e.type)}`,
-                  }}
-                  onClick={() => openEdit(e)}
-                >
-                  <div className="txn-card-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 500, color: 'var(--text)' }}>{e.desc || e.account}</span>
-                    <span className="mono" style={{ color: typeColor(e.type), fontWeight: 700 }}>
-                      {e.type === 'Income' ? '+' : '−'}{INR(e.amount)}
-                    </span>
-                  </div>
-                  <div className="txn-card-bot" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>{e.date}</span>
-                    <span style={{ fontSize: 11, color: ACCOUNT_COLORS[e.account], fontWeight: 600 }}>{e.account}</span>
-                    <TypeBadge type={e.type} />
-                    {e.type === 'Transfer' && e.toAccount && (
-                      <span style={{ fontSize: 10, color: 'var(--muted)' }}>→ {e.toAccount}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Desktop table */}
-          {!loading && filteredEntries.length > 0 && (
-            <div className="tw txn-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Date</th>
-                    <th>Account</th>
-                    <th>Amount</th>
-                    <th>Desc</th>
-                    <th>Type</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEntries.map(e => (
-                    <tr key={e.id}>
-                      <td style={{ color: 'var(--muted)', fontSize: 11 }}>{e.id.slice(0, 8)}</td>
-                      <td>{e.date}</td>
-                      <td>
-                        <span style={{ color: ACCOUNT_COLORS[e.account], fontWeight: 500 }}>{e.account}</span>
-                      </td>
-                      <td className="mono" style={{ color: typeColor(e.type), fontWeight: 700 }}>
-                        {INR(e.amount)}
-                      </td>
-                      <td>{e.desc}</td>
-                      <td>
-                        <TypeBadge type={e.type} />
-                      </td>
-                      <td>
-                        <button
-                          className="icon-btn"
-                          onClick={() => openEdit(e)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)' }}
-                        >
-                          <Pencil size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Error message */}
-      {error && (
-        <p style={{ color: '#EF4444', fontSize: 13, padding: '12px 10px', marginTop: 12 }}>
-          ⚠ {error}
-        </p>
-      )}
+      {/* FAB — Add Savings Entry */}
+      <button
+        onClick={() => setModalOpen(true)}
+        style={{
+          position: 'fixed', bottom: 24, right: 20,
+          width: 52, height: 52, borderRadius: '50%',
+          background: 'var(--navy)', color: '#fff',
+          border: '2px solid rgba(255,255,255,.25)',
+          boxShadow: '0 4px 16px rgba(37,99,235,.4)',
+          cursor: 'pointer', zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+        title="Add savings entry"
+      >
+        <Plus size={22} strokeWidth={2.5} />
+      </button>
 
       {/* MODAL */}
       {modalOpen && (

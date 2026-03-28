@@ -9,7 +9,6 @@ import Budget from './Budget'
 import Credits from './Credits'
 import Accounts from './Accounts'
 import TransactionModal from '../components/TransactionModal'
-import AIPanel from '../components/AIPanel'
 import { MNS } from '../constants'
 
 type TabId = 'dash' | 'txns' | 'bud' | 'cc' | 'acct'
@@ -26,7 +25,6 @@ export default function Monthly() {
   const [tab, setTab] = useState<TabId>('dash')
   const [modalOpen, setModalOpen] = useState(false)
   const [editRow, setEditRow] = useState<typeof state.rows[0] | null>(null)
-  const [aiOpen, setAiOpen] = useState(false)
   const [status, setStatus] = useState('')
 
   const showStatus = useCallback((msg: string) => {
@@ -50,8 +48,6 @@ export default function Monthly() {
   useEffect(() => {
     ;(async () => {
       try {
-        const sheetId = import.meta.env.VITE_SHEET_ID as string
-        if (sheetId) await api.configure(sheetId)
         const init = await api.init()
         dispatch({ type: 'SET_MONTHS', payload: init.months })
         dispatch({ type: 'SET_BUDGET', payload: init.budget })
@@ -96,19 +92,19 @@ export default function Monthly() {
       <BottomNav tab={tab} onTab={(id) => setTab(id)} />
 
       <main>
-        {tab === 'dash' && <Dashboard onAddClick={() => { setEditRow(null); setModalOpen(true) }} />}
-        {tab === 'txns' && <Transactions onEdit={r => { setEditRow(r); setModalOpen(true) }} onAddClick={() => { setEditRow(null); setModalOpen(true) }} />}
+        {tab === 'dash' && <Dashboard />}
+        {tab === 'txns' && <Transactions onEdit={r => { setEditRow(r); setModalOpen(true) }} />}
         {tab === 'bud'  && <Budget showStatus={showStatus} onCategoryClick={cat => { dispatch({ type:'SET_CAT_FILTER', payload:cat }); setTab('txns') }} />}
         {tab === 'cc'   && <Credits />}
         {tab === 'acct' && <Accounts showStatus={showStatus} />}
       </main>
 
-      {/* FAB — AI assistant */}
+      {/* FAB — Add transaction */}
       <button
-        onClick={() => setAiOpen(true)}
-        style={{ position:'fixed', bottom:24, right:20, width:52, height:52, borderRadius:'50%', background:'var(--navy-dark)', color:'#fff', fontSize:24, border:'2px solid #A5B4FC', boxShadow:'0 4px 16px rgba(30,27,75,.4)', cursor:'pointer', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center' }}
-        title="AI assistant"
-      >🤖</button>
+        onClick={() => { setEditRow(null); setModalOpen(true) }}
+        style={{ position:'fixed', bottom:24, right:20, width:52, height:52, borderRadius:'50%', background:'var(--navy-dark)', color:'#fff', fontSize:24, border:'none', boxShadow:'0 4px 16px rgba(0,0,0,.2)', cursor:'pointer', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center' }}
+        title="Add transaction"
+      >+</button>
 
       {modalOpen && (
         <TransactionModal
@@ -123,8 +119,6 @@ export default function Monthly() {
           showStatus={showStatus}
         />
       )}
-
-      <AIPanel open={aiOpen} onClose={() => setAiOpen(false)} onSaved={() => loadMonth(state.month, state.year)} />
     </div>
   )
 }

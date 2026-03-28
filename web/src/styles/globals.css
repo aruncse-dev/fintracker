@@ -6,6 +6,7 @@ body {
   overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding-bottom: env(safe-area-inset-bottom);
 }
+.with-app-shell { overflow: hidden; }
 .mono { font-family: 'Geist Mono', monospace; }
 
 :root {
@@ -51,14 +52,19 @@ body {
 .nav-drawer-item:active { background: rgba(255,255,255,.08); }
 
 /* MONTHLY SUB-NAV (month controls below global nav) */
-.nav-sub { background: var(--navy-dark); height: 46px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; position: sticky; top: calc(54px + env(safe-area-inset-top)); z-index: 95; gap: 10px; box-shadow: 0 1px 6px rgba(30,27,75,.2); }
+.nav-sub { background: var(--navy-dark); height: 46px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; position: sticky; top: 0; z-index: 95; gap: 10px; box-shadow: 0 1px 6px rgba(30,27,75,.2); }
 
 /* TAB BAR */
-.tab-bar { display: flex; background: var(--card); border-bottom: 2px solid var(--border); position: sticky; top: calc(54px + env(safe-area-inset-top)); z-index: 90; }
-.monthly-wrap .tab-bar { top: calc(100px + env(safe-area-inset-top)); }
+.tab-bar { display: flex; background: var(--card); border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 90; }
+.monthly-wrap .tab-bar { top: 46px; }
 .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border: none; border-bottom: 3px solid transparent; margin-bottom: -2px; background: transparent; color: var(--muted); font-size: 10px; font-weight: 500; cursor: pointer; font-family: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: color .15s, border-color .15s; }
 .tab-item.active { color: var(--navy); border-bottom-color: var(--navy); font-weight: 700; }
 .tab-icon { font-size: 18px; line-height: 1; }
+
+/* APP-SHELL LAYOUT FOR MONTHLY */
+.monthly-wrap { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+.monthly-wrap main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.monthly-wrap .pg { padding: 12px 10px 28px; margin: 0; max-width: 100%; }
 
 /* PAGE */
 .pg { padding: 12px 10px 28px; max-width: 100%; }

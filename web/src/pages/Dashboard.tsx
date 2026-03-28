@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, CreditCard, Handshake, Plus } from 'lucide-react'
+import { TrendingUp, TrendingDown, CreditCard, Handshake } from 'lucide-react'
 import { useStore } from '../store'
 import { sumType, sumCC, sumOtherCr, catMap, budgetSummary, acctFlows, INR } from '../utils'
 import { ACCOUNTS, CC_MODES, OTHER_CR, CR_COLORS, ALL_CR } from '../constants'
@@ -32,9 +32,7 @@ function svgDonut(data: {label:string;v:number;col:string}[], size: number) {
 
 const ACCT_COLORS = ['var(--gm)', 'var(--navy)', 'var(--amber)']
 
-interface Props { onAddClick: () => void }
-
-export default function Dashboard({ onAddClick }: Props) {
+export default function Dashboard() {
   const { state } = useStore()
   const { rows, budget, openingBal, month, year } = state
 
@@ -82,7 +80,6 @@ export default function Dashboard({ onAddClick }: Props) {
     <div className="pg">
       <div className="sec" style={{marginTop:12}}>
         <span className="sec-h">{month} {year}</span>
-        <button className="btn btn-sm btn-green" onClick={onAddClick}><Plus size={14} />Add Transaction</button>
       </div>
 
       {!rows.length && (

@@ -63,9 +63,18 @@ if echo "$RESPONSE" | grep -q "ok\|data"; then
   echo "→ Updating GitHub secret VITE_GAS_URL..."
   if gh secret set VITE_GAS_URL --body "$GAS_URL" 2>/dev/null; then
     echo "✓ GitHub secret updated"
+    echo ""
+    echo "→ Triggering Worker redeploy to pick up new GAS URL..."
+    if gh workflow run deploy-worker.yml 2>/dev/null; then
+      echo "✓ Worker redeploy triggered (see: gh run list --workflow=deploy-worker.yml)"
+    else
+      echo "⚠ Worker redeploy trigger failed. Run manually:"
+      echo "   gh workflow run deploy-worker.yml"
+    fi
   else
-    echo "⚠ GitHub secret update skipped. Run this manually:"
+    echo "⚠ GitHub secret update skipped. Run these manually:"
     echo "   gh secret set VITE_GAS_URL --body \"$GAS_URL\""
+    echo "   gh workflow run deploy-worker.yml"
   fi
 else
   echo "⚠ Deployment returned unexpected response: $RESPONSE"

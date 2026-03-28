@@ -367,9 +367,6 @@ export default function Lending() {
           <span>
             {activeTab === 'dashboard' ? 'People' : activeTab === 'lended' ? 'Lended' : 'Received'} ({displayedPeople.length})
           </span>
-          <button className="btn btn-sm" style={{ gap: 5 }} onClick={openAdd}>
-            <Plus size={14} /> Add
-          </button>
         </div>
 
         {loading ? (
@@ -564,6 +561,13 @@ export default function Lending() {
           </div>
         </div>
       )}
+
+      {/* FAB — Add entry */}
+      <button
+        onClick={openAdd}
+        style={{ position:'fixed', bottom:24, right:20, width:52, height:52, borderRadius:'50%', background:'var(--navy-dark)', color:'#fff', fontSize:24, border:'none', boxShadow:'0 4px 16px rgba(0,0,0,.2)', cursor:'pointer', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center' }}
+        title="Add entry"
+      >+</button>
 
       <style>{`
         @keyframes slideUp {

@@ -1,4 +1,4 @@
-import { Pencil, Plus } from 'lucide-react'
+import { Pencil } from 'lucide-react'
 import { useStore, usePage } from '../store'
 import { Transaction } from '../types'
 import { fd, INR, catIcon } from '../utils'
@@ -7,14 +7,14 @@ import { TXN_PAGE } from '../constants'
 
 const FILTERS = ['All','Expense','Income','Transfer','Savings','ICICI','HDFC','Bommi','Ramya']
 
-interface Props { onEdit: (r: Transaction) => void; onAddClick: () => void }
+interface Props { onEdit: (r: Transaction) => void }
 
 function typeBadge(t: string) {
   const cls = t==='Income'?'bg':t==='Savings'?'ba':t==='Transfer'?'bp':'br'
   return <span className={`badge ${cls}`}>{t}</span>
 }
 
-export default function Transactions({ onEdit, onAddClick }: Props) {
+export default function Transactions({ onEdit }: Props) {
   const { state, dispatch } = useStore()
   const { rows, total, shown } = usePage()
   const rem = total - shown
@@ -23,7 +23,6 @@ export default function Transactions({ onEdit, onAddClick }: Props) {
     <div className="pg">
       <div className="sec" style={{marginTop:12}}>
         <span className="sec-h">{total} entries · {state.month} {state.year}</span>
-        <button className="btn btn-sm btn-green" onClick={onAddClick}><Plus size={14} />Add</button>
       </div>
 
       <div className="pills">

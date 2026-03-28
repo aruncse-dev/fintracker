@@ -98,8 +98,9 @@ function setExpensesSheetId(id) {
 }
 
 function _configure(expensesSheetId, assetsSheetId) {
-  if (!expensesSheetId) throw new Error('expensesSheetId is required');
-  PropertiesService.getScriptProperties().setProperty('EXPENSES_SHEET_ID', expensesSheetId);
+  if (expensesSheetId) {
+    PropertiesService.getScriptProperties().setProperty('EXPENSES_SHEET_ID', expensesSheetId);
+  }
   if (assetsSheetId) {
     PropertiesService.getScriptProperties().setProperty('ASSETS_SHEET_ID', assetsSheetId);
   }

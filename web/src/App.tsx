@@ -35,7 +35,7 @@ function InstallBanner() {
 function Inner() {
   const [module, setModule] = useState<ModuleId>('monthly')
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh' }} className={module === 'monthly' ? 'with-app-shell' : ''}>
       <Nav module={module} onModule={setModule} />
       {module === 'monthly'     && <Monthly />}
       {module === 'lending'     && <Lending />}
