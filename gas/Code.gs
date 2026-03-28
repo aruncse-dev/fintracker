@@ -56,10 +56,15 @@ function doGet(e) {
 
 function doPost(e) {
   try {
+    Logger.log('doPost: parsing body');
     const body = JSON.parse(e.postData.contents || '{}');
+    Logger.log('doPost body: ' + JSON.stringify(body));
     _checkToken(body.token);
-    return _apiJson(_handlePost(body));
+    const result = _handlePost(body);
+    Logger.log('doPost result: ' + JSON.stringify(result));
+    return _apiJson(result);
   } catch(err) {
+    Logger.log('doPost error: ' + err.message);
     return _apiJson(err.message, true);
   }
 }
@@ -120,7 +125,11 @@ function _handleGet(p) {
 }
 
 function _handlePost(body) {
-  if (body.module === 'lending') return _lendingHandlePost(body.action, body);
+  Logger.log('_handlePost module: ' + body.module + ', action: ' + body.action);
+  if (body.module === 'lending') {
+    Logger.log('Routing to lending handler');
+    return _lendingHandlePost(body.action, body);
+  }
   const action = body.action;
   if (action === 'addRow')
     return addRow(body.month, body.year, body.date, body.desc, body.a, body.c, body.t, body.m, body.notes);

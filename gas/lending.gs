@@ -131,9 +131,19 @@ function _lendingHandleGet(action) {
 }
 
 function _lendingHandlePost(action, body) {
-  if (action === 'addEntry')    return _lending_addEntry(body.date, body.name, body.amount, body.type, body.description);
-  if (action === 'updateEntry') return _lending_updateEntry(body.id, body.date, body.name, body.amount, body.type, body.description);
-  if (action === 'deleteEntry') return _lending_deleteEntry(body.id);
+  Logger.log('_lendingHandlePost action: ' + action);
+  if (action === 'addEntry') {
+    Logger.log('Calling _lending_addEntry');
+    return _lending_addEntry(body.date, body.name, body.amount, body.type, body.description);
+  }
+  if (action === 'updateEntry') {
+    Logger.log('Calling _lending_updateEntry');
+    return _lending_updateEntry(body.id, body.date, body.name, body.amount, body.type, body.description);
+  }
+  if (action === 'deleteEntry') {
+    Logger.log('Calling _lending_deleteEntry');
+    return _lending_deleteEntry(body.id);
+  }
   throw new Error('Unknown lending POST action: ' + action);
 }
 
