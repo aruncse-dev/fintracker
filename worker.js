@@ -42,8 +42,10 @@ export default {
     const url = new URL(request.url)
     const targetUrl = new URL(GAS_EXEC_URL)
 
-    // Forward query parameters
-    targetUrl.search = url.search
+    // Forward all query parameters individually
+    url.searchParams.forEach((value, key) => {
+      targetUrl.searchParams.set(key, value)
+    })
 
     try {
       const options = {
