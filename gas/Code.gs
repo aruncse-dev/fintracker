@@ -42,6 +42,7 @@ function doGet(e) {
   if (e && e.parameter && e.parameter.action) {
     try {
       Logger.log('doGet params: ' + JSON.stringify(e.parameter));
+      Logger.log('doGet routing: module=' + (e.parameter.module || 'UNDEFINED') + ', action=' + e.parameter.action);
       _checkToken(e.parameter.token);
       const result = _handleGet(e.parameter);
       Logger.log('doGet result: ' + JSON.stringify(result));
@@ -56,15 +57,18 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    Logger.log('doPost: parsing body');
-    const body = JSON.parse(e.postData.contents || '{}');
-    Logger.log('doPost body: ' + JSON.stringify(body));
+    Logger.log('doPost: postData length=' + (e.postData ? e.postData.length : 0));
+    Logger.log('doPost: parsing body from contents');
+    const contents = e.postData.contents || '{}';
+    Logger.log('doPost contents: ' + contents.substring(0, 200));
+    const body = JSON.parse(contents);
+    Logger.log('doPost body parsed: module=' + (body.module || 'UNDEFINED') + ', action=' + (body.action || 'UNDEFINED'));
     _checkToken(body.token);
     const result = _handlePost(body);
     Logger.log('doPost result: ' + JSON.stringify(result));
     return _apiJson(result);
   } catch(err) {
-    Logger.log('doPost error: ' + err.message);
+    Logger.log('doPost error: ' + err.message + ' | Stack: ' + err.stack);
     return _apiJson(err.message, true);
   }
 }
@@ -87,14 +91,17 @@ function setGeminiKey(key) {
   return 'GEMINI_KEY set';
 }
 
-function setSheetId(id) {
-  PropertiesService.getScriptProperties().setProperty('SHEET_ID', id);
-  return 'SHEET_ID set';
+function setExpensesSheetId(id) {
+  PropertiesService.getScriptProperties().setProperty('EXPENSES_SHEET_ID', id);
+  return 'EXPENSES_SHEET_ID set';
 }
 
-function _configure(sheetId) {
-  if (!sheetId) throw new Error('sheetId is required');
-  PropertiesService.getScriptProperties().setProperty('SHEET_ID', sheetId);
+function _configure(expensesSheetId, assetsSheetId) {
+  if (!expensesSheetId) throw new Error('expensesSheetId is required');
+  PropertiesService.getScriptProperties().setProperty('EXPENSES_SHEET_ID', expensesSheetId);
+  if (assetsSheetId) {
+    PropertiesService.getScriptProperties().setProperty('ASSETS_SHEET_ID', assetsSheetId);
+  }
   return true;
 }
 
@@ -106,9 +113,9 @@ function _apiJson(data, isError) {
 }
 
 function _handleGet(p) {
-  Logger.log('_handleGet module: ' + p.module + ', action: ' + p.action);
+  Logger.log('_handleGet module: ' + (p.module || 'UNDEFINED') + ', action: ' + (p.action || 'UNDEFINED'));
   if (p.module === 'lending') {
-    Logger.log('Routing to lending handler');
+    Logger.log('_handleGet: routing to lending handler for action=' + p.action);
     return _lendingHandleGet(p.action);
   }
   const action = p.action;
@@ -125,9 +132,9 @@ function _handleGet(p) {
 }
 
 function _handlePost(body) {
-  Logger.log('_handlePost module: ' + body.module + ', action: ' + body.action);
+  Logger.log('_handlePost module: ' + (body.module || 'UNDEFINED') + ', action: ' + (body.action || 'UNDEFINED'));
   if (body.module === 'lending') {
-    Logger.log('Routing to lending handler');
+    Logger.log('_handlePost: routing to lending handler for action=' + body.action);
     return _lendingHandlePost(body.action, body);
   }
   const action = body.action;
@@ -150,7 +157,7 @@ function _handlePost(body) {
   if (action === 'resetBudget')
     return saveBudget(_defaultBudgets()) && _defaultBudgets();
   if (action === 'configure')
-    return _configure(body.sheetId);
+    return _configure(body.expensesSheetId, body.assetsSheetId);
   if (action === 'gemini')
     return _geminiProxy(body.system, body.prompt, body.forceTool === true);
   throw new Error('Unknown POST action: ' + action);
@@ -158,8 +165,8 @@ function _handlePost(body) {
 
 // ── PRIVATE SHEET HELPERS ─────────────────────────────────────────────────────
 function _ss() {
-  const id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
-  if (!id) throw new Error('SHEET_ID not configured. Run setSheetId("your-sheet-id") in the Apps Script editor.');
+  const id = PropertiesService.getScriptProperties().getProperty('EXPENSES_SHEET_ID');
+  if (!id) throw new Error('EXPENSES_SHEET_ID not configured. Run setExpensesSheetId("your-sheet-id") in the Apps Script editor.');
   return SpreadsheetApp.openById(id);
 }
 function _name(m, y)  { return m + '-' + y; }

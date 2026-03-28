@@ -24,6 +24,7 @@ jobs:
         env:
           VITE_SHEET_ID: ${{ secrets.VITE_SHEET_ID }}
           VITE_GAS_URL: ${{ secrets.VITE_GAS_URL }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           VITE_ALLOWED_EMAILS: ${{ secrets.VITE_ALLOWED_EMAILS }}
           VITE_API_TOKEN: ${{ secrets.VITE_API_TOKEN }}

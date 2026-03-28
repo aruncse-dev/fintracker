@@ -25,5 +25,8 @@ export const CR_COLORS: Record<string, string> = {
   Bommi:'#0891B2', Ramya:'#0E7490', Others:'#4B6080',
 };
 
-// GAS web app URL — update after deploying
+// GAS web app URL — update after deploying (used by GAS deploy script)
 export const GAS_URL = import.meta.env.VITE_GAS_URL as string;
+
+// API base URL: dev uses Vite proxy, prod uses Cloudflare Worker
+export const API_URL = import.meta.env.VITE_API_URL as string;

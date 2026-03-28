@@ -1,0 +1,14 @@
+name = "fintracker-proxy"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[env.production]
+route = "aruncse17.workers.dev"
+zone_id = ""
+
+[[env.production.triggers.crons]]
+cron = ""
+
+[vars]
+# GAS deployment URL (set via GitHub Actions secret)
+# GAS_EXEC_URL = "https://script.google.com/macros/s/YOUR_DEPLOY_ID/exec"

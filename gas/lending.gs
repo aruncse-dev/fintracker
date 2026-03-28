@@ -14,7 +14,9 @@ const L_SHEET = 'Lending';
 // ── HELPER: read a spreadsheet ID from PropertiesService ──────────────────────
 // key: script property name, e.g. 'ASSETS_SHEET_ID' or 'EXPENSES_SHEET_ID'
 function _getSpreadsheetId(key) {
+  Logger.log('_getSpreadsheetId: requesting key=' + key);
   const id = PropertiesService.getScriptProperties().getProperty(key);
+  Logger.log('_getSpreadsheetId: id=' + (id ? 'SET (length=' + id.length + ')' : 'NOT SET'));
   if (!id) throw new Error(key + ' not configured. Run setAssetsSheetId("your-sheet-id") in the Apps Script editor.');
   return id;
 }
@@ -86,7 +88,10 @@ function _ensureLendingHeader(sh) {
     }
 
     // Hide ID column (optional, non-critical)
-    try { sh.hideColumns(1); } catch(e) {}
+    try {
+      sh.setColumnWidth(1, 40);
+      sh.hideColumns(1);
+    } catch(e) {}
   } catch(e) {
     Logger.log('_ensureLendingHeader ERROR: ' + e.message);
     throw e;
@@ -100,7 +105,7 @@ function _lendingSheet() {
   Logger.log('_lendingSheet: opening spreadsheet: ' + ssId);
 
   const ss = SpreadsheetApp.openById(ssId);
-  Logger.log('_lendingSheet: spreadsheet opened');
+  Logger.log('_lendingSheet: spreadsheet name=' + ss.getName());
 
   let sh = ss.getSheetByName(L_SHEET);
   if (!sh) {
@@ -109,7 +114,7 @@ function _lendingSheet() {
     sh.appendRow(L_HDR);
     Logger.log('_lendingSheet: sheet created and header added');
   } else {
-    Logger.log('_lendingSheet: sheet "' + L_SHEET + '" found');
+    Logger.log('_lendingSheet: sheet "' + L_SHEET + '" found, lastRow=' + sh.getLastRow());
   }
 
   // Always ensure header is correct
@@ -186,33 +191,47 @@ function _lending_getEntries() {
 
 function _lending_addEntry(date, name, amount, type, description) {
   try {
-    Logger.log('_lending_addEntry: date=' + date + ', name=' + name + ', amount=' + amount + ', type=' + type);
+    Logger.log('_lending_addEntry: START date=' + date + ', name=' + name + ', amount=' + amount + ', type=' + type);
     const sh  = _lendingSheet();
+    Logger.log('_lending_addEntry: sheet obtained');
     const id  = Utilities.getUuid();
     const amt = parseFloat(amount) || 0;
     Logger.log('_lending_addEntry: appending row with id=' + id);
     sh.appendRow([id, date || '', String(name || '').trim(), amt, String(type || '').toUpperCase(), String(description || '').trim()]);
+    Logger.log('_lending_addEntry: row appended, last row=' + sh.getLastRow());
 
     const row = sh.getLastRow();
+    Logger.log('_lending_addEntry: styling row ' + row);
     _lendingStyleRow(sh, row, String(type || ''));
-    Logger.log('_lending_addEntry: success, id=' + id);
+    Logger.log('_lending_addEntry: styling complete');
+    Logger.log('_lending_addEntry: SUCCESS id=' + id);
     return id;
   } catch(e) {
-    Logger.log('_lending_addEntry ERROR: ' + e.message);
+    Logger.log('_lending_addEntry ERROR: ' + e.message + ' | Stack: ' + e.stack);
     throw e;
   }
 }
 
 function _lending_updateEntry(id, date, name, amount, type, description) {
   try {
-    Logger.log('_lending_updateEntry: id=' + id + ', name=' + name + ', amount=' + amount);
+    Logger.log('_lending_updateEntry: START id=' + id + ', name=' + name + ', amount=' + amount);
     const sh   = _lendingSheet();
+    Logger.log('_lending_updateEntry: sheet obtained');
     const vals = sh.getDataRange().getValues();
+    Logger.log('_lending_updateEntry: data read, rows=' + vals.length);
+
+    const targetId = String(id).trim();
+
     for (let i = 1; i < vals.length; i++) {
-      if (String(vals[i][L_COL.ID]) === String(id)) {
+      const rowId = String(vals[i][L_COL.ID] || "").trim();
+      Logger.log('_lending_updateEntry: comparing rowId="' + rowId + '" with targetId="' + targetId + '"');
+
+      if (rowId === targetId) {
         Logger.log('_lending_updateEntry: found entry at row ' + (i + 1));
         const amt = parseFloat(amount) || 0;
-        sh.getRange(i + 1, 1, 1, L_HDR.length).setValues([[
+        const rowNum = i + 1;
+        Logger.log('_lending_updateEntry: setting values for row ' + rowNum);
+        sh.getRange(rowNum, 1, 1, L_HDR.length).setValues([[
           id,
           date || '',
           String(name || '').trim(),
@@ -220,14 +239,15 @@ function _lending_updateEntry(id, date, name, amount, type, description) {
           String(type || '').toUpperCase(),
           String(description || '').trim(),
         ]]);
-        _lendingStyleRow(sh, i + 1, String(type || ''));
-        Logger.log('_lending_updateEntry: success');
+        Logger.log('_lending_updateEntry: values set, styling row');
+        _lendingStyleRow(sh, rowNum, String(type || ''));
+        Logger.log('_lending_updateEntry: SUCCESS');
         return true;
       }
     }
     throw new Error('Lending entry not found: ' + id);
   } catch(e) {
-    Logger.log('_lending_updateEntry ERROR: ' + e.message);
+    Logger.log('_lending_updateEntry ERROR: ' + e.message + ' | Stack: ' + e.stack);
     throw e;
   }
 }

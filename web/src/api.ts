@@ -1,10 +1,10 @@
 import { Budget, MonthRef, OpeningBal, Transaction } from './types';
-import { GAS_URL } from './constants';
+import { API_URL } from './constants';
 
 type ApiResponse<T> = { ok: true; data: T } | { ok: false; error: string };
 
-// In dev, use Vite proxy to avoid CORS; in prod use GAS URL directly
-const BASE = import.meta.env.DEV ? '/gas-proxy' : GAS_URL;
+// Dev: Vite proxy (/gas-proxy), Prod: Cloudflare Worker (via VITE_API_URL)
+const BASE = API_URL;
 const TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
 
 async function parseResponse<T>(res: Response): Promise<T> {
@@ -32,6 +32,9 @@ async function get<T>(action: string, params: Record<string, string> = {}): Prom
 async function post<T>(body: Record<string, unknown>): Promise<T> {
   const res = await fetch(BASE, {
     method: 'POST',
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify(TOKEN ? { ...body, token: TOKEN } : body),
     redirect: 'follow',
   });
