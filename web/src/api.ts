@@ -80,6 +80,16 @@ export interface RawLendingRow {
   description: string;
 }
 
+export interface RawSavingsRow {
+  id: string;
+  date: string;
+  account: string;
+  amount: number | string;
+  desc: string;
+  type: string;
+  toAccount?: string;
+}
+
 export const api = {
   init:          ()                              => get<InitData>('init'),
   getData:       (month: string, year: string)  => get<Transaction[]>('getData', { month, year }),
@@ -94,6 +104,10 @@ export const api = {
   addLending:    (p: Record<string, unknown>)  => post<string>({ module: 'lending', action: 'addEntry', ...p }),
   updateLending: (p: Record<string, unknown>)  => post<boolean>({ module: 'lending', action: 'updateEntry', ...p }),
   deleteLending: (id: string)                  => post<boolean>({ module: 'lending', action: 'deleteEntry', id }),
+  getSavings:    ()                            => get<RawSavingsRow[]>('getEntries', { module: 'savings' }),
+  addSavings:    (p: Record<string, unknown>)  => post<string>({ module: 'savings', action: 'addEntry', ...p }),
+  updateSavings: (p: Record<string, unknown>)  => post<boolean>({ module: 'savings', action: 'updateEntry', ...p }),
+  deleteSavings: (id: string)                  => post<boolean>({ module: 'savings', action: 'deleteEntry', id }),
   configure:     (sheetId: string)              => post<boolean>({ action: 'configure', sheetId }),
   ensureMonth:   (month: string, year: string)  => post<boolean>({ action: 'ensureMonth', month, year }),
   resetBudget:   ()                             => post<Budget>({ action: 'resetBudget' }),

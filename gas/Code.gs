@@ -121,6 +121,10 @@ function _handleGet(p) {
     Logger.log('_handleGet: routing to lending handler for action=' + p.action);
     return _lendingHandleGet(p.action);
   }
+  if (p.module === 'savings') {
+    Logger.log('_handleGet: routing to savings handler for action=' + p.action);
+    return _savingsHandleGet(p.action);
+  }
   const action = p.action;
   if (action === 'init') return {
     months:     getMonths(),
@@ -139,6 +143,10 @@ function _handlePost(body) {
   if (body.module === 'lending') {
     Logger.log('_handlePost: routing to lending handler for action=' + body.action);
     return _lendingHandlePost(body.action, body);
+  }
+  if (body.module === 'savings') {
+    Logger.log('_handlePost: routing to savings handler for action=' + body.action);
+    return _savingsHandlePost(body.action, body);
   }
   const action = body.action;
   if (action === 'addRow')
