@@ -9,19 +9,32 @@
  *   wrangler deploy
  */
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400',
+  'Content-Type': 'application/json'
+}
+
 export default {
   async fetch(request, env) {
     const GAS_EXEC_URL = env.GAS_EXEC_URL
+
+    // Handle CORS preflight requests
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: CORS_HEADERS
+      })
+    }
 
     if (!GAS_EXEC_URL) {
       return new Response(
         JSON.stringify({ ok: false, error: 'GAS_EXEC_URL not configured' }),
         {
           status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          }
+          headers: CORS_HEADERS
         }
       )
     }
@@ -52,10 +65,7 @@ export default {
       return new Response(text, {
         status: response.status,
         headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          ...CORS_HEADERS,
           'Cache-Control': 'no-cache, no-store, must-revalidate'
         }
       })
@@ -64,10 +74,7 @@ export default {
         JSON.stringify({ ok: false, error: error.message }),
         {
           status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          }
+          headers: CORS_HEADERS
         }
       )
     }
