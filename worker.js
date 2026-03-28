@@ -45,14 +45,20 @@ export default {
       url.hostname = gasUrl.hostname
       url.pathname = gasUrl.pathname
 
+      console.log('Worker: Final URL to GAS=' + url.toString())
+
       // Get body for non-GET requests
       const body = request.method !== 'GET' ? await request.text() : null
+
+      console.log('Worker: Fetching with method=' + request.method + ', body=' + (body ? 'present' : 'null'))
 
       const response = await fetch(url.toString(), {
         method: request.method,
         headers: request.headers,
         body: body
       })
+
+      console.log('Worker: GAS response status=' + response.status)
 
       const text = await response.text()
 
