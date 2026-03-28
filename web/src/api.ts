@@ -1,11 +1,16 @@
 import { Budget, MonthRef, OpeningBal, Transaction } from './types';
 import { API_URL } from './constants';
 
-type ApiResponse<T> = { ok: true; data: T } | { ok: false; error: string };
+type ApiResponse<T> = { ok: true; data: T; debug?: Record<string, unknown> } | { ok: false; error: string };
 
 // Dev: Vite proxy (/gas-proxy), Prod: Cloudflare Worker (via VITE_API_URL)
 const BASE = API_URL;
 const TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
+const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+
+function generateTraceId() {
+  return `trace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
 
 async function parseResponse<T>(res: Response): Promise<T> {
   const text = await res.text();
@@ -17,12 +22,16 @@ async function parseResponse<T>(res: Response): Promise<T> {
   }
   const json: ApiResponse<T> = JSON.parse(text);
   if (!json.ok) throw new Error(json.error);
+  if (DEBUG && json.debug) console.log('[API Debug]', json.debug);
   return json.data;
 }
 
 async function get<T>(action: string, params: Record<string, string> = {}): Promise<T> {
   const url = new URL(BASE, window.location.origin);
+  const traceId = generateTraceId();
   url.searchParams.set('action', action);
+  url.searchParams.set('traceId', traceId);
+  if (DEBUG) url.searchParams.set('debug', 'true');
   if (TOKEN) url.searchParams.set('token', TOKEN);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   const res = await fetch(url.toString(), { redirect: 'follow' });
@@ -30,12 +39,19 @@ async function get<T>(action: string, params: Record<string, string> = {}): Prom
 }
 
 async function post<T>(body: Record<string, unknown>): Promise<T> {
+  const traceId = generateTraceId();
+  const payload = {
+    ...body,
+    traceId,
+    ...(DEBUG && { debug: true }),
+    ...(TOKEN && { token: TOKEN })
+  };
   const res = await fetch(BASE, {
     method: 'POST',
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify(TOKEN ? { ...body, token: TOKEN } : body),
+    body: JSON.stringify(payload),
     redirect: 'follow',
   });
   return parseResponse<T>(res);

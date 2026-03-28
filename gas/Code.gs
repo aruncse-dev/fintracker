@@ -41,14 +41,16 @@ const C_SAV_FG   = '#92400E';
 function doGet(e) {
   if (e && e.parameter && e.parameter.action) {
     try {
-      Logger.log('doGet params: ' + JSON.stringify(e.parameter));
+      const traceId = e.parameter.traceId;
+      const debug = e.parameter.debug === 'true';
+      if (traceId) Logger.log('TRACE:' + traceId);
       Logger.log('doGet routing: module=' + (e.parameter.module || 'UNDEFINED') + ', action=' + e.parameter.action);
       _checkToken(e.parameter.token);
       const result = _handleGet(e.parameter);
-      Logger.log('doGet result: ' + JSON.stringify(result));
-      return _apiJson(result);
+      const debugInfo = debug ? { traceId, action: e.parameter.action, module: e.parameter.module } : undefined;
+      return _apiJson(result, false, debugInfo);
     } catch(err) {
-      Logger.log('doGet error: ' + err.message + ' | Stack: ' + err.stack);
+      Logger.log('doGet error: ' + err.message);
       return _apiJson(err.message, true);
     }
   }
@@ -57,18 +59,18 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    Logger.log('doPost: postData length=' + (e.postData ? e.postData.length : 0));
-    Logger.log('doPost: parsing body from contents');
     const contents = e.postData.contents || '{}';
-    Logger.log('doPost contents: ' + contents.substring(0, 200));
     const body = JSON.parse(contents);
-    Logger.log('doPost body parsed: module=' + (body.module || 'UNDEFINED') + ', action=' + (body.action || 'UNDEFINED'));
+    const traceId = body.traceId;
+    const debug = body.debug === true;
+    if (traceId) Logger.log('TRACE:' + traceId);
+    Logger.log('doPost routing: module=' + (body.module || 'UNDEFINED') + ', action=' + (body.action || 'UNDEFINED'));
     _checkToken(body.token);
     const result = _handlePost(body);
-    Logger.log('doPost result: ' + JSON.stringify(result));
-    return _apiJson(result);
+    const debugInfo = debug ? { traceId, action: body.action, module: body.module } : undefined;
+    return _apiJson(result, false, debugInfo);
   } catch(err) {
-    Logger.log('doPost error: ' + err.message + ' | Stack: ' + err.stack);
+    Logger.log('doPost error: ' + err.message);
     return _apiJson(err.message, true);
   }
 }
@@ -106,8 +108,9 @@ function _configure(expensesSheetId, assetsSheetId) {
 }
 
 
-function _apiJson(data, isError) {
+function _apiJson(data, isError, debug) {
   const payload = isError ? { ok: false, error: data } : { ok: true, data: data };
+  if (debug) payload.debug = debug;
   return ContentService.createTextOutput(JSON.stringify(payload))
     .setMimeType(ContentService.MimeType.JSON);
 }
