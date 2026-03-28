@@ -50,9 +50,7 @@ export default {
 
       const response = await fetch(url.toString(), {
         method: request.method,
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: request.headers,
         body: body
       })
 
