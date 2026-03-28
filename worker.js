@@ -45,12 +45,18 @@ export default {
       url.hostname = gasUrl.hostname
       url.pathname = gasUrl.pathname
 
-      console.log('Worker: Final URL to GAS=' + url.toString())
+      // Extract traceId from query params or body for logging
+      let traceId = url.searchParams.get('traceId')
+      if (!traceId && request.method !== 'GET') {
+        const body = await request.clone().text()
+        try { traceId = JSON.parse(body).traceId } catch (e) {}
+      }
+      traceId = traceId || 'none'
+
+      console.log(`[${traceId}] IN: ${request.method}`)
 
       // Get body for non-GET requests
       const body = request.method !== 'GET' ? await request.text() : null
-
-      console.log('Worker: Fetching with method=' + request.method + ', body=' + (body ? 'present' : 'null'))
 
       const response = await fetch(url.toString(), {
         method: request.method,
@@ -58,7 +64,7 @@ export default {
         body: body
       })
 
-      console.log('Worker: GAS response status=' + response.status)
+      console.log(`[${traceId}] OUT: status=${response.status}`)
 
       const text = await response.text()
 
