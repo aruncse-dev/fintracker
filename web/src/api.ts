@@ -1,7 +1,7 @@
 import { Budget, MonthRef, OpeningBal, Transaction } from './types';
 import { API_URL } from './constants';
 
-type ApiResponse<T> = { ok: true; data: T; debug?: Record<string, unknown> } | { ok: false; error: string };
+type ApiResponse<T> = { ok: true; data: T; traceId?: string; debug?: Record<string, unknown> } | { ok: false; error: string; traceId?: string };
 
 // Dev: Vite proxy (/gas-proxy), Prod: Cloudflare Worker (via VITE_API_URL)
 const BASE = API_URL;
@@ -9,7 +9,7 @@ const TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
 const DEBUG = import.meta.env.VITE_DEBUG === 'true';
 
 function generateTraceId() {
-  return `trace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 async function parseResponse<T>(res: Response): Promise<T> {
@@ -21,8 +21,16 @@ async function parseResponse<T>(res: Response): Promise<T> {
       : 'GAS not deployed — run ./deploy.sh');
   }
   const json: ApiResponse<T> = JSON.parse(text);
-  if (!json.ok) throw new Error(json.error);
-  if (DEBUG && json.debug) console.log('[API Debug]', json.debug);
+  if (!json.ok) {
+    const err = new Error(json.error) as Error & { traceId?: string };
+    err.traceId = json.traceId;
+    throw err;
+  }
+  if (DEBUG) {
+    const msg: any = { traceId: json.traceId };
+    if (json.debug) msg.debug = json.debug;
+    console.log('[API Trace]', msg);
+  }
   return json.data;
 }
 

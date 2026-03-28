@@ -43,35 +43,34 @@ function doGet(e) {
     try {
       const traceId = e.parameter.traceId;
       const debug = e.parameter.debug === 'true';
-      if (traceId) Logger.log('TRACE:' + traceId);
-      Logger.log('doGet routing: module=' + (e.parameter.module || 'UNDEFINED') + ', action=' + e.parameter.action);
+      if (debug && traceId) Logger.log('TRACE:' + traceId);
       _checkToken(e.parameter.token);
       const result = _handleGet(e.parameter);
-      const debugInfo = debug ? { traceId, action: e.parameter.action, module: e.parameter.module } : undefined;
-      return _apiJson(result, false, debugInfo);
+      const debugInfo = debug ? { action: e.parameter.action, module: e.parameter.module } : undefined;
+      return _apiJson(result, false, debugInfo, traceId);
     } catch(err) {
-      Logger.log('doGet error: ' + err.message);
-      return _apiJson(err.message, true);
+      if (e?.parameter?.traceId && e.parameter.debug === 'true') Logger.log('TRACE error:' + e.parameter.traceId);
+      return _apiJson(err.message, true, undefined, e?.parameter?.traceId);
     }
   }
   return _apiJson({ message: 'FinTracker API — use the React app at https://aruncse-dev.github.io/fintracker/' });
 }
 
 function doPost(e) {
+  let traceId;
   try {
     const contents = e.postData.contents || '{}';
     const body = JSON.parse(contents);
-    const traceId = body.traceId;
+    traceId = body.traceId;
     const debug = body.debug === true;
-    if (traceId) Logger.log('TRACE:' + traceId);
-    Logger.log('doPost routing: module=' + (body.module || 'UNDEFINED') + ', action=' + (body.action || 'UNDEFINED'));
+    if (debug && traceId) Logger.log('TRACE:' + traceId);
     _checkToken(body.token);
     const result = _handlePost(body);
-    const debugInfo = debug ? { traceId, action: body.action, module: body.module } : undefined;
-    return _apiJson(result, false, debugInfo);
+    const debugInfo = debug ? { action: body.action, module: body.module } : undefined;
+    return _apiJson(result, false, debugInfo, traceId);
   } catch(err) {
-    Logger.log('doPost error: ' + err.message);
-    return _apiJson(err.message, true);
+    if (traceId) Logger.log('TRACE error:' + traceId);
+    return _apiJson(err.message, true, undefined, traceId);
   }
 }
 
@@ -108,8 +107,9 @@ function _configure(expensesSheetId, assetsSheetId) {
 }
 
 
-function _apiJson(data, isError, debug) {
+function _apiJson(data, isError, debug, traceId) {
   const payload = isError ? { ok: false, error: data } : { ok: true, data: data };
+  if (traceId) payload.traceId = traceId;
   if (debug) payload.debug = debug;
   return ContentService.createTextOutput(JSON.stringify(payload))
     .setMimeType(ContentService.MimeType.JSON);

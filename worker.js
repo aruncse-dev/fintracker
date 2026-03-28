@@ -51,9 +51,9 @@ export default {
         const body = await request.clone().text()
         try { traceId = JSON.parse(body).traceId } catch (e) {}
       }
-      traceId = traceId || 'none'
+      traceId = traceId || 'unknown'
 
-      console.log(`[${traceId}] IN: ${request.method}`)
+      console.log(JSON.stringify({ traceId, stage: 'IN', method: request.method }))
 
       // Get body for non-GET requests
       const body = request.method !== 'GET' ? await request.text() : null
@@ -64,7 +64,7 @@ export default {
         body: body
       })
 
-      console.log(`[${traceId}] OUT: status=${response.status}`)
+      console.log(JSON.stringify({ traceId, stage: 'OUT', status: response.status }))
 
       const text = await response.text()
 
