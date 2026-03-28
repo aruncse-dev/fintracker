@@ -43,9 +43,15 @@ export default {
     const targetUrl = new URL(GAS_EXEC_URL)
 
     // Forward all query parameters individually
+    console.log('Worker: request.url=' + request.url)
+    console.log('Worker: GAS_EXEC_URL=' + GAS_EXEC_URL)
+
     url.searchParams.forEach((value, key) => {
+      console.log('Worker: setting param ' + key + '=' + value)
       targetUrl.searchParams.set(key, value)
     })
+
+    console.log('Worker: final targetUrl=' + targetUrl.toString())
 
     try {
       const options = {
