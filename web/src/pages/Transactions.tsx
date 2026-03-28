@@ -1,9 +1,10 @@
-import { Pencil } from 'lucide-react'
+import { Pencil, X } from 'lucide-react'
 import { useStore, usePage } from '../store'
 import { Transaction } from '../types'
-import { fd, INR, catIcon } from '../utils'
+import { fd, INR } from '../utils'
 import { ALL_CR } from '../constants'
 import { TXN_PAGE } from '../constants'
+import CatIcon from '../components/CatIcon'
 
 const FILTERS = ['All','Expense','Income','Transfer','Savings','ICICI','HDFC','Bommi','Ramya']
 
@@ -23,6 +24,20 @@ export default function Transactions({ onEdit }: Props) {
     <div className="pg">
       <div className="sec" style={{marginTop:12}}>
         <span className="sec-h">{total} entries · {state.month} {state.year}</span>
+      </div>
+
+      <div style={{position:'relative',marginBottom:8}}>
+        <input
+          className="form-inp"
+          style={{paddingRight:32,fontSize:14}}
+          placeholder="Search transactions..."
+          value={state.search}
+          onChange={e => dispatch({ type:'SET_SEARCH', payload:e.target.value })}
+        />
+        {state.search && (
+          <button className="icon-btn" style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)'}}
+            onClick={() => dispatch({ type:'SET_SEARCH', payload:'' })}><X size={14} /></button>
+        )}
       </div>
 
       <div className="pills">
@@ -56,11 +71,11 @@ export default function Transactions({ onEdit }: Props) {
                 <div key={r.id} className={`txn-card txn-card-${r.t==='Income'?'inc':r.t==='Transfer'?'trf':r.t==='Savings'?'sav':'exp'}`} onClick={() => onEdit(r)}>
                   <div className="txn-card-top">
                     <span className="txn-card-desc">{r.desc}</span>
-                    <span className="txn-card-amt mono" style={{color:col}}>{(isI||isS)?'+':'−'}{INR(r.a)}</span>
+                    <span className="txn-card-amt" style={{fontSize:14,fontWeight:700,color:col}}>{(isI||isS)?'+':'−'}{INR(r.a)}</span>
                   </div>
                   <div className="txn-card-bot">
                     <span className="txn-card-date">{fd(r.date)}</span>
-                    <span className="badge ba" style={{fontSize:10}}>{catIcon(r.c)}{r.c}</span>
+                    <span className="badge ba" style={{fontSize:12,fontWeight:500,display:'flex',alignItems:'center',gap:6,padding:'6px 10px'}}><CatIcon cat={r.c} size={13} />{r.c}</span>
                     {typeBadge(r.t)}
                     {isCr ? <span className="badge bn" style={{fontSize:10}}>{r.m}</span> : <span style={{fontSize:11,color:'var(--muted)'}}>{r.m}</span>}
                   </div>
@@ -87,10 +102,10 @@ export default function Transactions({ onEdit }: Props) {
                     <tr key={r.id}>
                       <td>{fd(r.date)}</td>
                       <td>{r.desc}</td>
-                      <td><span className="badge ba" style={{fontSize:10}}>{catIcon(r.c)}{r.c}</span></td>
+                      <td><span className="badge ba" style={{fontSize:10,display:'flex',alignItems:'center',gap:4}}><CatIcon cat={r.c} size={11} />{r.c}</span></td>
                       <td>{typeBadge(r.t)}</td>
                       <td>{isCr?<span className="badge bn">{r.m}</span>:r.m}</td>
-                      <td className="mono ta-r" style={{color:col}}>{(isI||isS)?'+':'−'}{INR(r.a)}</td>
+                      <td style={{textAlign:'right',fontSize:14,fontWeight:700,color:col}}>{(isI||isS)?'+':'−'}{INR(r.a)}</td>
                       <td><button className="icon-btn" onClick={()=>onEdit(r)}><Pencil size={14} /></button></td>
                     </tr>
                   )

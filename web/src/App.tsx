@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { StoreProvider } from './store'
 import Nav, { ModuleId } from './components/Nav'
 import ErrorScreen from './components/ErrorScreen'
+import { Smartphone } from 'lucide-react'
 import Monthly from './pages/Monthly'
 import Lending from './pages/Lending'
 import Savings from './pages/Savings'
@@ -23,7 +24,7 @@ function InstallBanner() {
   if (!show) return null
   return (
     <div style={{position:'fixed',top:106,left:12,right:12,background:'var(--card)',border:'1px solid var(--border)',borderLeft:'4px solid var(--navy)',borderRadius:10,padding:'10px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',zIndex:150,boxShadow:'0 4px 16px rgba(55,48,163,.12)'}}>
-      <span style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>📱 Add FinTracker to home screen</span>
+      <span style={{fontSize:13,fontWeight:600,color:'var(--text)',display:'flex',alignItems:'center',gap:6}}><Smartphone size={14} /> Add FinTracker to home screen</span>
       <div style={{display:'flex',gap:6,flexShrink:0}}>
         <button style={{background:'var(--navy)',color:'#fff',border:'none',borderRadius:8,padding:'5px 12px',fontSize:12,fontWeight:700,cursor:'pointer'}} onClick={() => { deferredPrompt.current?.prompt(); setShow(false) }}>Install</button>
         <button style={{background:'none',border:'none',color:'var(--muted)',fontSize:18,cursor:'pointer',lineHeight:1,padding:'0 2px'}} onClick={() => setShow(false)}>×</button>
@@ -34,11 +35,28 @@ function InstallBanner() {
 
 function Inner() {
   const [module, setModule] = useState<ModuleId>('monthly')
+  const [lendingSheet, setLendingSheet] = useState('Lending')
+
+  const handleModuleChange = (id: ModuleId) => {
+    setModule(id)
+    if (id !== 'lending') setLendingSheet('Lending')
+  }
+
+  const getTitleForModule = (): string => {
+    if (module === 'monthly') return 'Monthly Expenses'
+    if (module === 'lending') return lendingSheet === 'Vijaya Amma' ? 'Vijaya Amma' : 'Lending'
+    if (module === 'savings') return 'Savings'
+    if (module === 'gold') return 'Gold'
+    if (module === 'stocks') return 'Stocks'
+    if (module === 'mutualfunds') return 'Mutual Funds'
+    return 'FinTracker'
+  }
+
   return (
     <div style={{ minHeight: '100vh' }} className={module === 'monthly' ? 'with-app-shell' : ''}>
-      <Nav module={module} onModule={setModule} />
+      <Nav module={module} onModule={handleModuleChange} lendingSheet={lendingSheet} onLendingSheet={setLendingSheet} title={getTitleForModule()} />
       {module === 'monthly'     && <Monthly />}
-      {module === 'lending'     && <Lending />}
+      {module === 'lending'     && <Lending key={lendingSheet} sheetName={lendingSheet} />}
       {module === 'savings'     && <Savings />}
       {module === 'gold'        && <Gold />}
       {module === 'stocks'      && <Stocks />}

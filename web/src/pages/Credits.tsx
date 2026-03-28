@@ -1,6 +1,8 @@
 import { useStore } from '../store'
-import { INR, fd, catIcon } from '../utils'
+import { INR, fd } from '../utils'
 import { CC_MODES, OTHER_CR, ALL_CR, CR_COLORS, MNS, ACCOUNTS } from '../constants'
+import CatIcon from '../components/CatIcon'
+import { CreditCard, Users, List } from 'lucide-react'
 
 const CC_CYCLE_DAY = 19 // billing cycle: 19th → 18th next month
 
@@ -36,54 +38,54 @@ export default function Credits() {
     <div className="pg">
       <div className="sec" style={{ marginTop: 12 }}>
         <span className="sec-h">Credit Summary</span>
-        <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 8 }}>{cycleLabel(month, year)}</span>
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{cycleLabel(month, year)}</div>
       </div>
 
       {/* 3-card summary */}
       <div className="cr-g3">
         <div className="card cp" style={{ borderTop: '3px solid var(--red)' }}>
           <div className="cc-n">Overall Total</div>
-          <div className="cc-a mono" style={{ color: 'var(--red)' }}>{INR(overall)}</div>
+          <div className="cc-a" style={{ fontSize: 16, fontWeight: 700, color: 'var(--red)' }}>{INR(overall)}</div>
           <div className="cc-d">All credit accounts</div>
         </div>
         <div className="card cp" style={{ borderTop: '3px solid #2563EB' }}>
           <div className="cc-n">CC Outstanding</div>
-          <div className="cc-a mono" style={{ color: '#2563EB' }}>{INR(ccNet)}</div>
+          <div className="cc-a" style={{ fontSize: 16, fontWeight: 700, color: '#2563EB' }}>{INR(ccNet)}</div>
           <div className="cc-d">ICICI + HDFC</div>
         </div>
         <div className="card cp" style={{ borderTop: '3px solid #0891B2' }}>
           <div className="cc-n">Other Credits</div>
-          <div className="cc-a mono" style={{ color: '#0891B2' }}>{INR(otherTotal)}</div>
+          <div className="cc-a" style={{ fontSize: 16, fontWeight: 700, color: '#0891B2' }}>{INR(otherTotal)}</div>
           <div className="cc-d">Bommi + Ramya + Others</div>
         </div>
       </div>
 
       {/* CC cards */}
-      <div className="sec"><div className="sec-h">💳 Credit Cards</div></div>
+      <div className="sec"><div className="sec-h" style={{display:'flex',alignItems:'center',gap:6}}><CreditCard size={16} /> Credit Cards</div></div>
       <div className="cc-g" style={{ marginBottom: 14 }}>
         {CC_MODES.map(m => (
           <div key={m} className="card cp" style={{ borderTop: `3px solid ${CR_COLORS[m]}` }}>
             <div className="cc-n">{m}</div>
-            <div className="cc-a mono" style={{ color: CR_COLORS[m] }}>{INR(totals[m])}</div>
+            <div className="cc-a" style={{ fontSize: 16, fontWeight: 700, color: CR_COLORS[m] }}>{INR(totals[m])}</div>
             <div className="cc-d">{totals[m] ? 'This cycle' : 'No transactions'}</div>
           </div>
         ))}
       </div>
 
       {/* Other credit cards */}
-      <div className="sec"><div className="sec-h">🤝 Other Credits</div></div>
+      <div className="sec"><div className="sec-h" style={{display:'flex',alignItems:'center',gap:6}}><Users size={16} /> Other Credits</div></div>
       <div className="cr-g3" style={{ marginBottom: 14 }}>
         {OTHER_CR.map(m => (
           <div key={m} className="card cp" style={{ borderTop: `3px solid ${CR_COLORS[m]}` }}>
             <div className="cc-n">{m}</div>
-            <div className="cc-a mono" style={{ color: CR_COLORS[m] }}>{INR(Math.max(0, totals[m]))}</div>
+            <div className="cc-a" style={{ fontSize: 16, fontWeight: 700, color: CR_COLORS[m] }}>{INR(Math.max(0, totals[m]))}</div>
             <div className="cc-d">{totals[m] ? 'This cycle' : 'No transactions'}</div>
           </div>
         ))}
       </div>
 
       {/* Transactions */}
-      <div className="sec"><div className="sec-h">📋 Transactions This Cycle</div></div>
+      <div className="sec"><div className="sec-h" style={{display:'flex',alignItems:'center',gap:6}}><List size={16} /> Transactions This Cycle</div></div>
 
       {cr.length === 0 && ccPaymentRows.length === 0 ? (
         <div className="lb">No credit transactions this cycle</div>
@@ -97,14 +99,14 @@ export default function Credits() {
                 <div key={r.id} className="txn-card">
                   <div className="txn-card-top">
                     <span className="txn-card-desc">{r.desc}</span>
-                    <span className="txn-card-amt mono" style={{color: isAdv ? 'var(--amber)' : 'var(--red)'}}>{isAdv ? '⇄' : '−'}{INR(r.a)}</span>
+                    <span className="txn-card-amt" style={{fontSize:14,fontWeight:700,color: isAdv ? 'var(--amber)' : 'var(--red)'}}>{isAdv ? '⇄' : '−'}{INR(r.a)}</span>
                   </div>
                   <div className="txn-card-bot">
                     <span className="txn-card-date">{fd(r.date)}</span>
                     <span className="badge bn" style={{fontSize:10,borderColor:CR_COLORS[r.m],color:CR_COLORS[r.m]}}>{r.m}</span>
                     {isAdv
                       ? <span className="badge bp" style={{fontSize:10}}>Advance → {toAcct}</span>
-                      : <span className="badge ba" style={{fontSize:10}}>{catIcon(r.c)}{r.c}</span>
+                      : <span className="badge ba" style={{fontSize:12,fontWeight:500,display:'flex',alignItems:'center',gap:6,padding:'6px 10px'}}><CatIcon cat={r.c} size={13} />{r.c}</span>
                     }
                   </div>
                 </div>
@@ -116,7 +118,7 @@ export default function Credits() {
                 <div key={r.id} className="txn-card">
                   <div className="txn-card-top">
                     <span className="txn-card-desc">{r.desc}</span>
-                    <span className="txn-card-amt mono" style={{color:'var(--green)'}}>+{INR(r.a)}</span>
+                    <span className="txn-card-amt" style={{fontSize:14,fontWeight:700,color:'var(--green)'}}>+{INR(r.a)}</span>
                   </div>
                   <div className="txn-card-bot">
                     <span className="txn-card-date">{fd(r.date)}</span>
@@ -141,8 +143,8 @@ export default function Credits() {
                       <td>{fd(r.date)}</td>
                       <td>{r.desc}</td>
                       <td><span className="badge bn" style={{borderColor:CR_COLORS[r.m],color:CR_COLORS[r.m]}}>{r.m}</span></td>
-                      <td>{isAdv ? <span className="badge bp" style={{fontSize:10}}>Advance → {toAcct}</span> : <span className="badge ba" style={{fontSize:10}}>{catIcon(r.c)}{r.c}</span>}</td>
-                      <td className="mono ta-r" style={{color: isAdv ? 'var(--amber)' : 'var(--red)'}}>{isAdv ? '⇄' : '−'}{INR(r.a)}</td>
+                      <td>{isAdv ? <span className="badge bp" style={{fontSize:10}}>Advance → {toAcct}</span> : <span className="badge ba" style={{fontSize:12,fontWeight:500,display:'flex',alignItems:'center',gap:6,padding:'6px 10px'}}><CatIcon cat={r.c} size={13} />{r.c}</span>}</td>
+                      <td style={{textAlign:'right',fontSize:14,fontWeight:700,color: isAdv ? 'var(--amber)' : 'var(--red)'}}>{isAdv ? '⇄' : '−'}{INR(r.a)}</td>
                     </tr>
                   )
                 })}
@@ -154,7 +156,7 @@ export default function Credits() {
                       <td>{r.desc}</td>
                       <td><span className="badge bn" style={{borderColor:CR_COLORS[cc],color:CR_COLORS[cc]}}>{cc}</span></td>
                       <td><span className="badge bg" style={{fontSize:10}}>Payment</span></td>
-                      <td className="mono ta-r" style={{color:'var(--green)'}}>+{INR(r.a)}</td>
+                      <td style={{textAlign:'right',fontSize:14,fontWeight:700,color:'var(--green)'}}>+{INR(r.a)}</td>
                     </tr>
                   )
                 })}

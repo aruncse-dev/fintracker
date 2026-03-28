@@ -119,8 +119,9 @@ function _apiJson(data, isError, debug, traceId) {
 function _handleGet(p) {
   Logger.log('_handleGet module: ' + (p.module || 'UNDEFINED') + ', action: ' + (p.action || 'UNDEFINED'));
   if (p.module === 'lending') {
-    Logger.log('_handleGet: routing to lending handler for action=' + p.action);
-    return _lendingHandleGet(p.action);
+    const sheetName = p.sheetName || 'Lending';
+    Logger.log('_handleGet: routing to lending handler for action=' + p.action + ', sheetName=' + sheetName);
+    return _lendingHandleGet(p.action, sheetName);
   }
   if (p.module === 'savings') {
     Logger.log('_handleGet: routing to savings handler for action=' + p.action);
@@ -142,8 +143,9 @@ function _handleGet(p) {
 function _handlePost(body) {
   Logger.log('_handlePost module: ' + (body.module || 'UNDEFINED') + ', action: ' + (body.action || 'UNDEFINED'));
   if (body.module === 'lending') {
-    Logger.log('_handlePost: routing to lending handler for action=' + body.action);
-    return _lendingHandlePost(body.action, body);
+    const sheetName = body.sheetName || 'Lending';
+    Logger.log('_handlePost: routing to lending handler for action=' + body.action + ', sheetName=' + sheetName);
+    return _lendingHandlePost(body.action, { ...body, sheetName });
   }
   if (body.module === 'savings') {
     Logger.log('_handlePost: routing to savings handler for action=' + body.action);
@@ -587,4 +589,3 @@ function _defaultBudgets() {
     'Others':5000,
   };
 }
-

@@ -6,6 +6,11 @@ import { INR } from '../utils'
 type LendType = 'LEND' | 'RECEIVED'
 type LendTab = 'dashboard' | 'lended' | 'received'
 
+interface LendingProps {
+  sheetName: string
+  onTabChange?: (tab: 'dashboard' | 'lended' | 'received') => void
+}
+
 interface LendingEntry {
   id: string
   date: string
@@ -105,31 +110,20 @@ const PersonCard = memo(function PersonCard({ person, onClick }: PersonCardProps
             {person.name}
           </div>
         </div>
-        <div style={{
-          fontSize: 11,
-          fontWeight: 700,
-          padding: '4px 8px',
-          borderRadius: 4,
-          background: person.outstanding > 0 ? 'rgba(239, 68, 68, 0.1)' : person.outstanding < 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.1)',
-          color: person.outstanding > 0 ? '#EF4444' : person.outstanding < 0 ? '#10B981' : 'var(--text)',
-        }}>
+        <div className={`sbadge ${person.outstanding > 0 ? 'sbadge-red' : person.outstanding < 0 ? 'sbadge-green' : 'sbadge-gray'}`}>
           {person.outstanding > 0 ? 'LENT' : person.outstanding < 0 ? 'CLEAR' : 'SETTLED'}
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Lent
-          </div>
+        <div className="stat-block">
+          <div className="lbl">Lent</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
             {INR(person.totalLent)}
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Received
-          </div>
+        <div className="stat-block">
+          <div className="lbl">Received</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
             {INR(person.totalRepaid)}
           </div>
@@ -144,9 +138,7 @@ const PersonCard = memo(function PersonCard({ person, onClick }: PersonCardProps
         justifyContent: 'space-between',
         alignItems: 'center',
       }}>
-        <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          Outstanding
-        </div>
+        <div className="lbl">Outstanding</div>
         <div style={{
           fontSize: 16,
           fontWeight: 700,
@@ -159,7 +151,7 @@ const PersonCard = memo(function PersonCard({ person, onClick }: PersonCardProps
   )
 })
 
-export default function Lending() {
+export default function Lending({ sheetName, onTabChange }: LendingProps) {
   const [entries, setEntries] = useState<LendingEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -177,16 +169,18 @@ export default function Lending() {
     setLoading(true)
     setError('')
     try {
-      const rows = await api.getLending()
+      const rows = await api.getLending(sheetName)
       setEntries(rows.map(parseRow).filter((e): e is LendingEntry => e !== null))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [sheetName])
 
   useEffect(() => { loadData() }, [loadData])
+
+  useEffect(() => { onTabChange?.(activeTab) }, [activeTab, onTabChange])
 
   // Memoize aggregated data to prevent unnecessary recalculations
   const people = useMemo(() => aggregateByPerson(entries), [entries])
@@ -233,8 +227,8 @@ export default function Lending() {
     const apiType = form.type === 'RECEIVED' ? 'REPAY' : form.type
     const p = { date: form.date, name: form.name.trim(), amount: parseFloat(form.amount), type: apiType, description: form.description.trim() }
     try {
-      if (editEntry) await api.updateLending({ ...p, id: editEntry.id })
-      else await api.addLending(p)
+      if (editEntry) await api.updateLending({ ...p, id: editEntry.id }, sheetName)
+      else await api.addLending(p, sheetName)
       setModalOpen(false)
       await loadData()
     } catch (e) {
@@ -249,7 +243,7 @@ export default function Lending() {
     if (!editEntry) return
     setSaving(true)
     try {
-      await api.deleteLending(editEntry.id)
+      await api.deleteLending(editEntry.id, sheetName)
       setModalOpen(false)
       await loadData()
     } catch (e) {
@@ -266,7 +260,7 @@ export default function Lending() {
     return people.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
   }, [people, search])
 
-  // Get people based on active tab
+  // Get people/entries based on active tab
   const displayedPeople = useMemo(() => {
     if (activeTab === 'dashboard') return filteredPeople
     if (activeTab === 'lended') return filteredPeople.filter(p => p.outstanding > 0)
@@ -279,12 +273,25 @@ export default function Lending() {
     return filteredPeople
   }, [filteredPeople, activeTab, entries])
 
+  // Flat transaction lists for lended/received tabs
+  const lendedEntries = useMemo(() =>
+    entries.filter(e => e.type === 'LEND')
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [entries]
+  )
+
+  const receivedEntries = useMemo(() =>
+    entries.filter(e => e.type === 'RECEIVED')
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [entries]
+  )
+
   // Get person details for the bottom sheet
   const personDetails = personModalName ? people.find(p => p.name === personModalName) : null
 
   const TAB_CONFIG = [
     { id: 'dashboard' as const, icon: <LayoutDashboard size={19} />, label: 'Dashboard' },
-    { id: 'lended' as const, icon: <Handshake size={19} />, label: 'Lended' },
+    { id: 'lended' as const, icon: <Handshake size={19} />, label: 'Given' },
     { id: 'received' as const, icon: <ArrowDownLeft size={19} />, label: 'Received' },
   ]
 
@@ -304,55 +311,30 @@ export default function Lending() {
         ))}
       </nav>
 
-      {/* Search Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 0, background: 'var(--card)', padding: '8px 12px', borderRadius: 0, border: 'none', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-        <Search size={16} style={{ color: 'var(--muted)' }} />
-        <input
-          type="text"
-          placeholder="Search people..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{
-            flex: 1,
-            border: 'none',
-            background: 'transparent',
-            color: 'var(--text)',
-            outline: 'none',
-            fontSize: 14,
-          }}
-        />
-        {search && (
-          <button
-            onClick={() => setSearch('')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--muted)',
-              cursor: 'pointer',
-              padding: 0,
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            <X size={16} />
-          </button>
-        )}
-      </div>
+      <div className="pg" style={{paddingTop:8}}>
+        {/* Search Bar */}
+        <div style={{position:'relative',marginBottom:8}}>
+          <input className="form-inp" type="text" placeholder="Search people..." value={search} onChange={e => setSearch(e.target.value)} style={{paddingLeft:36,paddingRight:32,fontSize:14}} />
+          <Search size={15} style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:'var(--muted)',pointerEvents:'none'}} />
+          {search && (
+            <button className="icon-btn" style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)'}} onClick={() => setSearch('')}><X size={14} /></button>
+          )}
+        </div>
 
       {/* Dashboard Tab */}
       {activeTab === 'dashboard' && (
         <>
-          <div className="kpis" style={{ marginBottom: 0, padding: '12px 10px' }}>
+          <div className="kpis" style={{ marginBottom: 0 }}>
             <div className="card" style={{ padding: '10px 14px' }}>
-              <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>Total Lent</div>
+              <div className="lbl">Total Given</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', marginTop: 2 }}>{INR(totalLent)}</div>
             </div>
             <div className="card" style={{ padding: '10px 14px' }}>
-              <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>Received</div>
+              <div className="lbl">Received</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: '#10B981', marginTop: 2 }}>{INR(totalRepaid)}</div>
             </div>
             <div className="card" style={{ padding: '10px 14px', gridColumn: 'span 2' }}>
-              <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>Total Outstanding</div>
+              <div className="lbl">Total Outstanding</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: outstanding > 0 ? '#F59E0B' : 'var(--text)', marginTop: 2 }}>{INR(outstanding)}</div>
             </div>
           </div>
@@ -361,11 +343,11 @@ export default function Lending() {
 
       {error && <p style={{ color: '#EF4444', fontSize: 13, padding: '12px 10px' }}>⚠ {error}</p>}
 
-      {/* Person Cards */}
-      <div className="sec" style={{ padding: '0 10px', margin: 0 }}>
+      {/* Person Cards / Flat Transaction Lists */}
+      <div className="sec">
         <div className="sec-h" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>
-            {activeTab === 'dashboard' ? 'People' : activeTab === 'lended' ? 'Lended' : 'Received'} ({displayedPeople.length})
+            {activeTab === 'dashboard' ? 'People' : activeTab === 'lended' ? 'Given' : 'Received'} ({activeTab === 'lended' ? lendedEntries.length : activeTab === 'received' ? receivedEntries.length : displayedPeople.length})
           </span>
         </div>
 
@@ -373,23 +355,97 @@ export default function Lending() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '1rem 0', color: 'var(--muted)', fontSize: 14 }}>
             <Loader2 size={16} className="spin-icon" /> Loading…
           </div>
-        ) : displayedPeople.length === 0 ? (
-          <p style={{ color: 'var(--muted)', padding: '1rem 0', fontSize: 14 }}>
-            {search ? 'No matches found.' : 'No data to display.'}
-          </p>
+        ) : activeTab === 'dashboard' ? (
+          displayedPeople.length === 0 ? (
+            <p style={{ color: 'var(--muted)', padding: '1rem 0', fontSize: 14 }}>
+              {search ? 'No matches found.' : 'No data to display.'}
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+              {displayedPeople.map(person => (
+                <PersonCard
+                  key={person.name}
+                  person={person}
+                  onClick={() => {
+                    setPersonModalName(person.name)
+                    setPersonModalOpen(true)
+                  }}
+                />
+              ))}
+            </div>
+          )
+        ) : activeTab === 'lended' ? (
+          lendedEntries.length === 0 ? (
+            <p style={{ color: 'var(--muted)', padding: '1rem 0', fontSize: 14 }}>No transactions yet.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+              {lendedEntries.map(e => (
+                <div
+                  key={e.id}
+                  className="card"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer' }}
+                  onClick={() => openEdit(e)}
+                >
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 5,
+                    background: e.type === 'LEND' ? 'rgba(239,68,68,.12)' : 'rgba(16,185,129,.12)',
+                    color: e.type === 'LEND' ? '#EF4444' : '#10B981',
+                    flexShrink: 0,
+                  }}>
+                    {e.type}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>
+                      {e.name}
+                    </div>
+                    {e.description && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{e.description}</div>}
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#EF4444' }}>
+                      {INR(e.amount)}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 1 }}>{e.date}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
-            {displayedPeople.map(person => (
-              <PersonCard
-                key={person.name}
-                person={person}
-                onClick={() => {
-                  setPersonModalName(person.name)
-                  setPersonModalOpen(true)
-                }}
-              />
-            ))}
-          </div>
+          receivedEntries.length === 0 ? (
+            <p style={{ color: 'var(--muted)', padding: '1rem 0', fontSize: 14 }}>No transactions yet.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+              {receivedEntries.map(e => (
+                <div
+                  key={e.id}
+                  className="card"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer' }}
+                  onClick={() => openEdit(e)}
+                >
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 5,
+                    background: e.type === 'LEND' ? 'rgba(239,68,68,.12)' : 'rgba(16,185,129,.12)',
+                    color: e.type === 'LEND' ? '#EF4444' : '#10B981',
+                    flexShrink: 0,
+                  }}>
+                    {e.type}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>
+                      {e.name}
+                    </div>
+                    {e.description && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{e.description}</div>}
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#10B981' }}>
+                      {INR(e.amount)}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 1 }}>{e.date}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         )}
       </div>
 
@@ -452,28 +508,12 @@ export default function Lending() {
           onClick={ev => { if (ev.target === ev.currentTarget) setPersonModalOpen(false) }}
           style={{ position: 'fixed', inset: 0, zIndex: 1000 }}
         >
-          <div
-            style={{
-              position: 'fixed',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              background: 'var(--card)',
-              borderRadius: '16px 16px 0 0',
-              maxHeight: '80vh',
-              display: 'flex',
-              flexDirection: 'column',
-              animation: 'slideUp 0.3s ease-out',
-              zIndex: 1001,
-            }}
-          >
-            {/* Handle Bar */}
-            <div style={{ padding: '12px 0', textAlign: 'center', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ width: 40, height: 4, background: 'var(--border)', borderRadius: 2, margin: '0 auto' }} />
+          <div className="sheet-panel" onClick={e => e.stopPropagation()}>
+            <div className="sheet-handle">
+              <div className="sheet-handle-bar" />
             </div>
 
-            {/* Header with close button */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
+            <div className="sheet-hd">
               <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
                 {personModalName}
               </h3>
@@ -487,27 +527,21 @@ export default function Lending() {
             </div>
 
             {/* Person Stats */}
-            <div style={{ padding: '12px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            <div className="sheet-stats" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
               <div className="card" style={{ padding: '10px 12px' }}>
-                <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>
-                  Lent
-                </div>
+                <div className="lbl">Lent</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>
                   {INR(personDetails.totalLent)}
                 </div>
               </div>
               <div className="card" style={{ padding: '10px 12px' }}>
-                <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>
-                  Received
-                </div>
+                <div className="lbl">Received</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>
                   {INR(personDetails.totalRepaid)}
                 </div>
               </div>
               <div className="card" style={{ padding: '10px 12px', background: personDetails.outstanding > 0 ? 'rgba(239, 68, 68, 0.08)' : personDetails.outstanding < 0 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(107, 114, 128, 0.05)' }}>
-                <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>
-                  Outstanding
-                </div>
+                <div className="lbl">Outstanding</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: personDetails.outstanding > 0 ? '#EF4444' : personDetails.outstanding < 0 ? '#10B981' : 'var(--text)', marginTop: 4 }}>
                   {INR(Math.abs(personDetails.outstanding))}
                 </div>
@@ -515,7 +549,7 @@ export default function Lending() {
             </div>
 
             {/* Transactions List */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px' }}>
+            <div className="sheet-body">
               {personModalEntries.length === 0 ? (
                 <p style={{ color: 'var(--muted)', padding: '1rem 0', fontSize: 14, textAlign: 'center' }}>
                   No entries for this person.
@@ -561,6 +595,7 @@ export default function Lending() {
           </div>
         </div>
       )}
+      </div>
 
       {/* FAB — Add entry */}
       <button
@@ -568,17 +603,6 @@ export default function Lending() {
         style={{ position:'fixed', bottom:24, right:20, width:52, height:52, borderRadius:'50%', background:'var(--navy-dark)', color:'#fff', fontSize:24, border:'none', boxShadow:'0 4px 16px rgba(0,0,0,.2)', cursor:'pointer', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center' }}
         title="Add entry"
       >+</button>
-
-      <style>{`
-        @keyframes slideUp {
-          from {
-            transform: translateY(100%);
-          }
-          to {
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </div>
   )
 }

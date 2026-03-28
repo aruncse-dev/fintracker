@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useStore } from '../store'
-import { acctFlows, INR, catIcon } from '../utils'
+import { acctFlows, INR } from '../utils'
 import { ACCOUNTS, CC_MODES } from '../constants'
 import { api } from '../api'
+import CatIcon from '../components/CatIcon'
+import { Wallet } from 'lucide-react'
 
 interface Props { showStatus: (msg: string) => void }
 
@@ -38,8 +40,8 @@ export default function Accounts({ showStatus }: Props) {
   return (
     <div className="pg">
       <div className="sec" style={{marginTop:12}}>
-        <span className="sec-h">💰 Account Balances</span>
-        <span style={{fontSize:11,color:'var(--muted)'}}>Tap opening balance to edit</span>
+        <span className="sec-h" style={{display:'flex',alignItems:'center',gap:6}}><Wallet size={18} /> Account Balances</span>
+        <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>Tap opening balance to edit</div>
       </div>
 
       <div className="acct-g2" style={{marginBottom:14}}>
@@ -55,7 +57,7 @@ export default function Accounts({ showStatus }: Props) {
                 <div className="acct-row">
                   <span className="acct-row-lbl">Opening</span>
                   {editBal===acc ? (
-                    <input className="form-inp mono" type="number" style={{width:80,padding:'2px 6px',fontSize:12}} value={editVal} autoFocus
+                    <input className="form-inp" type="number" style={{width:80,padding:'2px 6px',fontSize:12}} value={editVal} autoFocus
                       onChange={e=>setEditVal(e.target.value)}
                       onBlur={()=>saveOpeningBal(acc)}
                       onKeyDown={e=>{if(e.key==='Enter')saveOpeningBal(acc);if(e.key==='Escape')setEditBal(null)}} />
@@ -87,15 +89,15 @@ export default function Accounts({ showStatus }: Props) {
 
       {ccRows.length > 0 && (
         <>
-          <div className="sec"><div className="sec-h">💳 CC Spending by Category</div></div>
+          <div className="sec"><div className="sec-h" style={{display:'flex',alignItems:'center',gap:6}}><Wallet size={16} /> CC Spending by Category</div></div>
 
           {/* Mobile cards */}
           <div className="txn-cards" style={{marginBottom:14}}>
             {ccRows.map(([cat,v]) => (
               <div key={cat} className="txn-card">
                 <div className="txn-card-top">
-                  <span className="txn-card-desc">{catIcon(cat)}{cat}</span>
-                  <span className="txn-card-amt mono" style={{color:'var(--red)'}}>{INR(v.ICICI+v.HDFC)}</span>
+                  <span className="txn-card-desc" style={{display:'flex',alignItems:'center',gap:6}}><CatIcon cat={cat} size={14} />{cat}</span>
+                  <span className="txn-card-amt" style={{fontSize:14,fontWeight:700,color:'var(--red)'}}>{INR(v.ICICI+v.HDFC)}</span>
                 </div>
                 <div className="txn-card-bot">
                   {v.ICICI > 0 && <span style={{fontSize:11,color:'#2563EB'}}>ICICI {INR(v.ICICI)}</span>}
@@ -106,7 +108,7 @@ export default function Accounts({ showStatus }: Props) {
             <div className="txn-card" style={{background:'var(--navy-lt)'}}>
               <div className="txn-card-top">
                 <span className="txn-card-desc" style={{fontWeight:700}}>Total</span>
-                <span className="txn-card-amt mono" style={{color:'var(--red)'}}>{INR(icTotal+hdTotal)}</span>
+                <span className="txn-card-amt" style={{fontSize:14,fontWeight:700,color:'var(--red)'}}>{INR(icTotal+hdTotal)}</span>
               </div>
               <div className="txn-card-bot">
                 <span style={{fontSize:11,color:'#2563EB'}}>ICICI {INR(icTotal)}</span>
@@ -127,17 +129,17 @@ export default function Accounts({ showStatus }: Props) {
               <tbody>
                 {ccRows.map(([cat,v])=>(
                   <tr key={cat}>
-                    <td style={{padding:'9px 12px',borderBottom:'1px solid var(--border)'}}><span className="badge ba" style={{fontSize:10}}>{catIcon(cat)}{cat}</span></td>
-                    <td className="mono ta-r" style={{padding:'9px 12px',borderBottom:'1px solid var(--border)',color:v.ICICI?'#2563EB':'var(--muted)'}}>{v.ICICI?INR(v.ICICI):'—'}</td>
-                    <td className="mono ta-r" style={{padding:'9px 12px',borderBottom:'1px solid var(--border)',color:v.HDFC?'var(--navy)':'var(--muted)'}}>{v.HDFC?INR(v.HDFC):'—'}</td>
-                    <td className="mono ta-r" style={{padding:'9px 12px',borderBottom:'1px solid var(--border)',fontWeight:600,color:'var(--red)'}}>{INR(v.ICICI+v.HDFC)}</td>
+                    <td style={{padding:'9px 12px',borderBottom:'1px solid var(--border)'}}><span className="badge ba" style={{fontSize:12,fontWeight:500,display:'flex',alignItems:'center',gap:6,padding:'6px 10px'}}><CatIcon cat={cat} size={13} />{cat}</span></td>
+                    <td style={{textAlign:'right',padding:'9px 12px',borderBottom:'1px solid var(--border)',fontSize:14,fontWeight:700,color:v.ICICI?'#2563EB':'var(--muted)'}}>{v.ICICI?INR(v.ICICI):'—'}</td>
+                    <td style={{textAlign:'right',padding:'9px 12px',borderBottom:'1px solid var(--border)',fontSize:14,fontWeight:700,color:v.HDFC?'var(--navy)':'var(--muted)'}}>{v.HDFC?INR(v.HDFC):'—'}</td>
+                    <td style={{textAlign:'right',padding:'9px 12px',borderBottom:'1px solid var(--border)',fontSize:14,fontWeight:700,color:'var(--red)'}}>{INR(v.ICICI+v.HDFC)}</td>
                   </tr>
                 ))}
                 <tr style={{background:'#F8FAFC'}}>
                   <td style={{padding:'9px 12px',fontWeight:700}}>Total</td>
-                  <td className="mono ta-r" style={{padding:'9px 12px',fontWeight:700,color:'#2563EB'}}>{INR(icTotal)}</td>
-                  <td className="mono ta-r" style={{padding:'9px 12px',fontWeight:700,color:'var(--navy)'}}>{INR(hdTotal)}</td>
-                  <td className="mono ta-r" style={{padding:'9px 12px',fontWeight:700,color:'var(--red)'}}>{INR(icTotal+hdTotal)}</td>
+                  <td style={{textAlign:'right',padding:'9px 12px',fontSize:14,fontWeight:700,color:'#2563EB'}}>{INR(icTotal)}</td>
+                  <td style={{textAlign:'right',padding:'9px 12px',fontSize:14,fontWeight:700,color:'var(--navy)'}}>{INR(hdTotal)}</td>
+                  <td style={{textAlign:'right',padding:'9px 12px',fontSize:14,fontWeight:700,color:'var(--red)'}}>{INR(icTotal+hdTotal)}</td>
                 </tr>
               </tbody>
             </table>

@@ -114,8 +114,8 @@ const AccountBalanceCard = memo(function AccountBalanceCard({
   const balanceColor = balance > 0 ? '#10B981' : balance < 0 ? '#EF4444' : 'var(--text)';
   return (
     <div className="card" style={{ padding: '12px 14px' }}>
-      <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, marginBottom: 4 }}>{name}</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: balanceColor }}>{INR(balance)}</div>
+      <div className="lbl" style={{ marginBottom: 4 }}>{name}</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: balanceColor, marginTop: 2 }}>{INR(balance)}</div>
     </div>
   );
 });
@@ -422,56 +422,19 @@ export default function Savings() {
         {activeTab === 'transactions' && (
           <>
             {/* Search bar */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'var(--card)',
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: '1px solid var(--border)',
-              marginBottom: 16,
-            }}>
-              <Search size={16} style={{ color: 'var(--muted)' }} />
-              <input
-                type="text"
-                placeholder="Search desc, account, type…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{
-                  flex: 1,
-                  border: 'none',
-                  background: 'transparent',
-                  color: 'var(--text)',
-                  outline: 'none',
-                  fontSize: 14,
-                }}
-              />
+            <div style={{position:'relative',marginBottom:16}}>
+              <input className="form-inp" type="text" placeholder="Search desc, account, type…" value={search} onChange={e => setSearch(e.target.value)} style={{paddingLeft:36,paddingRight:32,fontSize:14}} />
+              <Search size={15} style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:'var(--muted)',pointerEvents:'none'}} />
               {search && (
-                <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)' }}>
-                  <X size={16} />
-                </button>
+                <button className="icon-btn" style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)'}} onClick={() => setSearch('')}><X size={14} /></button>
               )}
             </div>
 
             {/* Filter pills */}
-            <div className="sec" style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: 6, flex: 1, flexWrap: 'wrap' }}>
-                {TYPE_FILTERS.map(f => (
-                  <button
-                    key={f}
-                    className="btn btn-sm"
-                    style={{
-                      background: typeFilter === f ? 'var(--navy)' : 'var(--border)',
-                      color: typeFilter === f ? '#fff' : 'var(--text)',
-                      whiteSpace: 'nowrap',
-                    }}
-                    onClick={() => setTypeFilter(f)}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
+            <div className="pills" style={{marginBottom:16}}>
+              {TYPE_FILTERS.map(f => (
+                <button key={f} className={`pill ${typeFilter===f?'active':''}`} onClick={() => setTypeFilter(f)}>{f}</button>
+              ))}
             </div>
 
             {/* Loading */}
@@ -580,9 +543,9 @@ export default function Savings() {
         style={{
           position: 'fixed', bottom: 24, right: 20,
           width: 52, height: 52, borderRadius: '50%',
-          background: 'var(--navy)', color: '#fff',
-          border: '2px solid rgba(255,255,255,.25)',
-          boxShadow: '0 4px 16px rgba(37,99,235,.4)',
+          background: 'var(--navy-dark)', color: '#fff',
+          border: 'none',
+          boxShadow: '0 4px 16px rgba(0,0,0,.2)',
           cursor: 'pointer', zIndex: 100,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}

@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, CreditCard, Handshake } from 'lucide-react'
+import { TrendingUp, TrendingDown, CreditCard, Handshake, Package, AlertTriangle } from 'lucide-react'
 import { useStore } from '../store'
 import { sumType, sumCC, sumOtherCr, catMap, budgetSummary, acctFlows, INR } from '../utils'
 import { ACCOUNTS, CC_MODES, OTHER_CR, CR_COLORS, ALL_CR } from '../constants'
@@ -93,18 +93,41 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* KPIs */}
-      <div className="kpis" style={{marginTop:12}}>
-        <div className="kpi"><div className="kpi-l"><TrendingUp size={13} />Income</div><div className="kpi-v mono" style={{color:'var(--green)'}}>+{INR(inc)}</div></div>
-        <div className="kpi"><div className="kpi-l"><TrendingDown size={13} />Expenses</div><div className="kpi-v mono" style={{color:'var(--red)'}}>−{INR(exp)}</div></div>
-        <div className="kpi"><div className="kpi-l"><CreditCard size={13} />Credit Cards</div><div className="kpi-v mono" style={{color:'#2563EB'}}>−{INR(cc)}</div></div>
-        <div className="kpi"><div className="kpi-l"><Handshake size={13} />Other Credits</div><div className="kpi-v mono" style={{color:'#0891B2'}}>−{INR(ocr)}</div></div>
+      {/* Monthly Summary Card */}
+      <div className="card cp" style={{marginBottom:10,borderLeft:`4px solid ${surplus>=0?'var(--green)':'var(--red)'}`}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:7}}>
+          <div className="lbl">📊 Monthly Summary</div>
+          <div style={{fontSize:14,fontWeight:700,color:surplus>=0?'var(--green)':'var(--red)'}}>{surplus>=0?'+':'−'}{INR(Math.abs(surplus))}</div>
+        </div>
+        <div style={{display:'flex',justifyContent:'space-between',gap:12,marginBottom:8}}>
+          <div className="stat-block">
+            <div className="lbl"><TrendingUp size={12} /> Income</div>
+            <div style={{fontSize:14,fontWeight:700,color:'var(--green)',marginTop:2}}>+{INR(inc)}</div>
+          </div>
+          <div className="stat-block" style={{textAlign:'right'}}>
+            <div className="lbl"><TrendingDown size={12} /> Expenses</div>
+            <div style={{fontSize:14,fontWeight:700,color:'var(--red)',marginTop:2}}>−{INR(exp)}</div>
+          </div>
+        </div>
+        {(cc>0 || ocr>0) && <div className="bar-bg" style={{height:6}}><div className="bar-f" style={{width:`${((cc+ocr)/(cc+ocr+exp))*100}%`,background:'#0891B2'}} /></div>}
+        <div style={{display:'flex',justifyContent:'space-between',marginTop:5,fontSize:11,color:'var(--muted)'}}>
+          <span>{Math.round(((exp+cc+ocr)/inc)*100)}% spent</span>
+          <span style={{display:'flex',alignItems:'center',gap:4}}>{surplus>=0?<><span style={{color:'var(--green)',fontSize:12,fontWeight:700}}>✓</span> Surplus</>:<><span style={{color:'var(--red)',fontSize:12,fontWeight:700}}>●</span> Deficit</>}</span>
+        </div>
       </div>
+
+      {/* Credit Cards & Other Credits Mini Grid */}
+      {(cc>0 || ocr>0) && (
+        <div style={{display:'grid',gridTemplateColumns:`repeat(${cc>0 && ocr>0 ? 2 : 1},1fr)`,gap:7,marginBottom:12}}>
+          {cc>0 && <div className="card" style={{borderTop:`3px solid #2563EB`,padding:'10px 10px'}}><div className="lbl"><CreditCard size={12} />Cards</div><div style={{fontSize:14,fontWeight:700,color:'#2563EB',marginTop:2}}>−{INR(cc)}</div></div>}
+          {ocr>0 && <div className="card" style={{borderTop:`3px solid #0891B2`,padding:'10px 10px'}}><div className="lbl"><Handshake size={12} />Credits</div><div style={{fontSize:14,fontWeight:700,color:'#0891B2',marginTop:2}}>−{INR(ocr)}</div></div>}
+        </div>
+      )}
 
       {/* Balance hero */}
       <div className="hero">
         <div className="hero-l">Total Savings Balance</div>
-        <div className="hero-a mono" style={{color: totalSavings>=0?'var(--green)':'var(--red)'}}>
+        <div className="hero-a" style={{fontSize:24,fontWeight:700,color: totalSavings>=0?'var(--green)':'var(--red)'}}>
           {totalSavings<0?'−':''}{INR(Math.abs(totalSavings))}
         </div>
         {surplus !== 0 && (
@@ -123,8 +146,8 @@ export default function Dashboard() {
           const { current } = flows[acc] || { current: 0 }
           return (
             <div key={acc} className="card" style={{borderTop:`3px solid ${ACCT_COLORS[i]}`,padding:'10px 10px'}}>
-              <div style={{fontSize:10,fontWeight:600,color:'var(--muted)',marginBottom:5,textTransform:'uppercase',letterSpacing:.4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{acc}</div>
-              <div className="mono" style={{fontSize:14,fontWeight:700,color:current>=0?'var(--green)':'var(--red)'}}>{current<0?'−':''}{INR(Math.abs(current))}</div>
+              <div className="lbl" style={{marginBottom:5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{acc}</div>
+              <div style={{fontSize:16,fontWeight:700,color:current>=0?'var(--green)':'var(--red)',marginTop:2}}>{current<0?'−':''}{INR(Math.abs(current))}</div>
             </div>
           )
         })}
@@ -135,13 +158,13 @@ export default function Dashboard() {
         <>
           <div className="sec" style={{marginBottom:6}}>
             <span className="sec-h">Credit Outstanding</span>
-            <span className="mono" style={{fontSize:11,fontWeight:700,color:'var(--red)'}}>−{INR(totalOutstanding)}</span>
+            <div style={{fontSize:16,fontWeight:700,color:'var(--red)'}}>−{INR(totalOutstanding)}</div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:7,marginBottom:12}}>
             {[...CC_MODES, ...OTHER_CR].filter(m => crTotals[m] > 0).map(m => (
               <div key={m} className="card" style={{borderTop:`3px solid ${CR_COLORS[m]}`,padding:'10px 10px'}}>
-                <div style={{fontSize:10,fontWeight:600,color:'var(--muted)',marginBottom:5,textTransform:'uppercase',letterSpacing:.4}}>{m}</div>
-                <div className="mono" style={{fontSize:14,fontWeight:700,color:CR_COLORS[m]}}>−{INR(crTotals[m])}</div>
+                <div className="lbl" style={{marginBottom:5}}>{m}</div>
+                <div style={{fontSize:14,fontWeight:700,color:CR_COLORS[m],marginTop:2}}>−{INR(crTotals[m])}</div>
               </div>
             ))}
           </div>
@@ -152,17 +175,17 @@ export default function Dashboard() {
       {Object.keys(budget).length > 0 && (
         <div className="card cp" style={{marginBottom:12,borderLeft:`4px solid ${tCol}`}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:7}}>
-            <span style={{fontSize:12,fontWeight:700}}>📦 Total Budget</span>
-            <span className="mono" style={{fontSize:12,fontWeight:700,color:totalOver?'var(--red)':'var(--green)'}}>{INR(totalSpent)} / {INR(totalBudget)}</span>
+            <div className="lbl" style={{display:'flex',alignItems:'center',gap:6}}><Package size={16} /> Total Budget</div>
+            <div style={{fontSize:14,fontWeight:700,color:totalOver?'var(--red)':'var(--green)'}}>{INR(totalSpent)} / {INR(totalBudget)}</div>
           </div>
           <div className="bar-bg" style={{height:8}}><div className="bar-f" style={{width:`${totalPct}%`,background:tCol}} /></div>
           <div style={{display:'flex',justifyContent:'space-between',marginTop:5,fontSize:11,color:'var(--muted)'}}>
             <span>{Math.round(totalPct)}% used · <span style={{color:ovCount?'var(--red)':'var(--green)',fontWeight:ovCount?700:400}}>{ovCount} overspent</span></span>
-            <span>{totalOver ? '🔴 Over '+INR(totalSpent-totalBudget) : '✅ '+INR(totalBudget-totalSpent)+' left'}</span>
+            <span style={{display:'flex',alignItems:'center',gap:4}}>{totalOver ? <><span style={{color:'var(--red)',fontSize:12,fontWeight:700}}>●</span> Over {INR(totalSpent-totalBudget)}</> : <><span style={{color:'var(--green)',fontSize:12,fontWeight:700}}>✓</span> {INR(totalBudget-totalSpent)} left</>}</span>
           </div>
           {overspent.length > 0 && (
             <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${totalOver?'#FECACA':'var(--border)'}`}}>
-              <div style={{fontSize:10,fontWeight:700,color:'var(--red)',textTransform:'uppercase',letterSpacing:.5,marginBottom:5}}>🚨 Overspent</div>
+              <div className="lbl" style={{color:'var(--red)',textTransform:'uppercase',marginBottom:5,display:'flex',alignItems:'center',gap:6}}><AlertTriangle size={14} /> Overspent</div>
               <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
                 {overspent.map(x=>(
                   <span key={x.c} style={{background:'var(--red)',color:'#fff',borderRadius:20,padding:'3px 9px',fontSize:11,fontWeight:600}}>{x.c} −{INR(x.s-x.b)}</span>
@@ -177,7 +200,7 @@ export default function Dashboard() {
       {(inc > 0 || exp > 0) && (
         <div className="chart-grid">
           <div className="card cp">
-            <div style={{fontSize:11,fontWeight:600,color:'var(--muted)',textTransform:'uppercase',letterSpacing:.5,marginBottom:10}}>Spend by Source</div>
+            <div className="lbl" style={{marginBottom:10}}>Spend by Source</div>
             <div className="chart-wrap">
               {svgDonut(spendData, 96)}
               <div className="chart-legend">
@@ -192,7 +215,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="card cp">
-            <div style={{fontSize:11,fontWeight:600,color:'var(--muted)',textTransform:'uppercase',letterSpacing:.5,marginBottom:10}}>Income vs Expense</div>
+            <div className="lbl" style={{marginBottom:10}}>Income vs Expense</div>
             <div className="chart-wrap">
               {svgDonut(incExpData, 96)}
               <div className="chart-legend">

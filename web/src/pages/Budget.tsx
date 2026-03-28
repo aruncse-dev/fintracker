@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Pencil, Trash2, Plus, RotateCcw, Check, X, AlertTriangle } from 'lucide-react'
+import { Pencil, Trash2, Plus, RotateCcw, Check, X as XIcon, AlertTriangle, Package } from 'lucide-react'
 import { useStore } from '../store'
-import { catMap, budgetSummary, INR, catIcon } from '../utils'
+import { catMap, budgetSummary, INR } from '../utils'
 import { api } from '../api'
 import { CATEGORIES } from '../constants'
+import CatIcon from '../components/CatIcon'
 
 interface Props { showStatus: (msg: string) => void; onCategoryClick: (cat: string) => void }
 
@@ -18,6 +19,8 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
   const active = Object.entries(budget).filter(([,b]) => b > 0)
   const [modal, setModal] = useState<ModalState>({ mode: null, cat: '', val: '' })
   const [saving, setSaving] = useState(false)
+  const [catSheet, setCatSheet] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
 
   function openAdd() { setModal({ mode: 'add', cat: CATEGORIES[0], val: '' }) }
   function openEdit(cat: string, budg: number) { setModal({ mode: 'edit', cat, val: String(budg) }) }
@@ -88,8 +91,8 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
       {/* Summary card */}
       <div className="card cp" style={{marginBottom:10,borderLeft:`4px solid ${tCol}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:7}}>
-          <span style={{fontSize:12,fontWeight:700}}>📦 Total Budget</span>
-          <span className="mono" style={{fontSize:12,fontWeight:700,color:totalOver?'var(--red)':'var(--green)'}}>{INR(totalSpent)} / {INR(totalBudget)}</span>
+          <div className="lbl" style={{display:'flex',alignItems:'center',gap:6}}><Package size={16} /> Total Budget</div>
+          <div style={{fontSize:14,fontWeight:700,color:totalOver?'var(--red)':'var(--green)'}}>{INR(totalSpent)} / {INR(totalBudget)}</div>
         </div>
         <div className="bar-bg" style={{height:8}}><div className="bar-f" style={{width:`${totalPct}%`,background:tCol}} /></div>
         <div style={{display:'flex',justifyContent:'space-between',marginTop:5,fontSize:11,color:'var(--muted)'}}>
@@ -98,36 +101,75 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
         </div>
       </div>
 
-      {/* Budget rows */}
-      <div className="bud-wrap">
-        {active.sort((a,b)=>(cm[b[0]]||0)-(cm[a[0]]||0)).map(([cat, budg]) => {
+      {/* Search */}
+      <div style={{position:'relative',marginBottom:8}}>
+        <input
+          className="form-inp"
+          style={{paddingRight:32,fontSize:14}}
+          placeholder="Search categories..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        {search && (
+          <button className="icon-btn" style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)'}}
+            onClick={() => setSearch('')}><XIcon size={14} /></button>
+        )}
+      </div>
+
+      {/* Budget cards */}
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        {active.filter(([cat]) => cat.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>(cm[b[0]]||0)-(cm[a[0]]||0)).map(([cat, budg]) => {
           const spent = cm[cat] || 0
           const over = spent > budg
+          const remaining = budg - spent
           const pct = Math.min(spent / budg * 100, 100)
           const col = over ? 'var(--rm)' : pct > 80 ? '#F59E0B' : 'var(--gm)'
+          const badgeClass = over ? 'sbadge-red' : pct > 80 ? 'sbadge-amber' : 'sbadge-green'
           return (
-            <div key={cat} className={`bud-row ${over?'ov-row':''}`}>
-              <div className="bud-row-body">
-                <div className="bud-row-head">
-                  <span className="bud-row-name" style={{cursor:'pointer'}} onClick={() => onCategoryClick(cat)}>{catIcon(cat)}{cat} <span style={{fontSize:10,opacity:.5}}>↗</span></span>
-                  <span className={`bud-row-rest ${over?'ov-amt':'ok-amt'}`}>
-                    {over ? `−${INR(spent-budg)} over` : `${INR(budg-spent)} left`}
-                  </span>
+            <div
+              key={cat}
+              className="card"
+              style={{padding:'12px 12px',cursor:'pointer',display:'flex',flexDirection:'column',gap:6,transition:'all 0.15s ease'}}
+              onClick={() => setCatSheet(cat)}
+              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
+                <div style={{fontWeight:600,fontSize:14,color:'var(--text)',display:'flex',alignItems:'center'}}>
+                  <CatIcon cat={cat} size={14} />{cat}
                 </div>
-                <div className="bar-bg" style={{height:5}}><div className="bar-f" style={{width:`${pct}%`,background:col}} /></div>
-                <div className="bud-row-meta">
-                  <span>{INR(spent)} spent</span>
-                  <span className="bamt mono">{INR(budg)}</span>
+                <div className={`sbadge ${badgeClass}`} style={{fontSize:'11px',padding:'4px 8px',flexShrink:0}}>
+                  {over ? 'OVER' : pct > 80 ? 'NEAR' : 'OK'}
+                </div>
+                <div style={{display:'flex',gap:4,flexShrink:0}}>
+                  <button className="icon-btn" onClick={(e) => {e.stopPropagation(); openEdit(cat, budg)}}><Pencil size={13} /></button>
+                  <button className="icon-btn" style={{color:'var(--red)'}} onClick={(e) => {e.stopPropagation(); openDelete(cat)}}><Trash2 size={13} /></button>
                 </div>
               </div>
-              <div className="bud-actions">
-                <button className="icon-btn" onClick={() => openEdit(cat, budg)}><Pencil size={14} /></button>
-                <button className="icon-btn" style={{color:'var(--red)'}} onClick={() => openDelete(cat)}><Trash2 size={14} /></button>
+
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:10}}>
+                <div className="stat-block">
+                  <div className="lbl">Budget</div>
+                  <div style={{fontSize:14,fontWeight:700,color:'var(--text)'}}>{INR(budg)}</div>
+                </div>
+                <div className="stat-block" style={{textAlign:'right'}}>
+                  <div className="lbl">Spent</div>
+                  <div style={{fontSize:14,fontWeight:700,color:'var(--text)'}}>{INR(spent)}</div>
+                </div>
               </div>
+
+              <div style={{padding:'8px 10px',background:over?'rgba(239,68,68,.08)':pct>80?'rgba(245,158,11,.08)':'rgba(34,197,94,.08)',borderRadius:6,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <div className="lbl">{over?'Over':'Left'}</div>
+                <div style={{fontSize:14,fontWeight:700,color:col}}>{INR(Math.abs(remaining))}</div>
+              </div>
+
+              <div className="bar-bg" style={{height:5}}><div className="bar-f" style={{width:`${pct}%`,background:col}} /></div>
             </div>
           )
         })}
         {!active.length && <div className="lb">No budget categories. Click "+ Add".</div>}
+        {active.length > 0 && !active.filter(([cat]) => cat.toLowerCase().includes(search.toLowerCase())).length && <div className="lb">No matching categories.</div>}
       </div>
 
       {/* Modal */}
@@ -139,7 +181,7 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
                 <span className="modal-title" style={{display:'flex',alignItems:'center',gap:6}}>
                   <RotateCcw size={15} /> Reset Budgets
                 </span>
-                <button className="modal-close" onClick={closeModal}><X size={16} /></button>
+                <button className="modal-close" onClick={closeModal}><XIcon size={16} /></button>
               </div>
               <div className="modal-body">
                 <div style={{fontSize:14,color:'var(--text)'}}>
@@ -148,7 +190,7 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
               </div>
               <div className="modal-foot">
                 <div className="modal-foot-l" />
-                <button className="btn btn-sm" style={{background:'var(--border)',color:'var(--text)'}} onClick={closeModal}><X size={13} />Cancel</button>
+                <button className="btn btn-sm" style={{background:'var(--border)',color:'var(--text)'}} onClick={closeModal}><XIcon size={13} />Cancel</button>
                 <button className="btn btn-sm" style={{background:'var(--amber)',color:'#fff'}} onClick={confirmReset} disabled={saving}>
                   <RotateCcw size={13} />{saving ? '…' : 'Reset'}
                 </button>
@@ -160,16 +202,16 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
                 <span className="modal-title" style={{display:'flex',alignItems:'center',gap:6}}>
                   <AlertTriangle size={16} /> Remove Budget
                 </span>
-                <button className="modal-close" onClick={closeModal}><X size={16} /></button>
+                <button className="modal-close" onClick={closeModal}><XIcon size={16} /></button>
               </div>
               <div className="modal-body">
                 <div style={{fontSize:14,color:'var(--text)'}}>
-                  Remove budget for <b>{catIcon(modal.cat)}{modal.cat}</b>? This will not delete transactions.
+                  Remove budget for <b style={{display:'flex',alignItems:'center',gap:4}}><CatIcon cat={modal.cat} size={13} />{modal.cat}</b>? This will not delete transactions.
                 </div>
               </div>
               <div className="modal-foot">
                 <div className="modal-foot-l" />
-                <button className="btn btn-sm" style={{background:'var(--border)',color:'var(--text)'}} onClick={closeModal}><X size={13} />Cancel</button>
+                <button className="btn btn-sm" style={{background:'var(--border)',color:'var(--text)'}} onClick={closeModal}><XIcon size={13} />Cancel</button>
                 <button className="btn btn-sm" style={{background:'var(--red)',color:'#fff'}} onClick={confirmDelete} disabled={saving}>
                   <Trash2 size={13} />{saving ? '…' : 'Remove'}
                 </button>
@@ -181,7 +223,7 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
                 <span className="modal-title" style={{display:'flex',alignItems:'center',gap:6}}>
                   {modal.mode === 'add' ? <><Plus size={15} />Add Budget</> : <><Pencil size={14} />Edit Budget</>}
                 </span>
-                <button className="modal-close" onClick={closeModal}><X size={16} /></button>
+                <button className="modal-close" onClick={closeModal}><XIcon size={16} /></button>
               </div>
               <div className="modal-body">
                 {modal.mode === 'add' ? (
@@ -192,8 +234,8 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
                     </select>
                   </div>
                 ) : (
-                  <div style={{fontSize:15,fontWeight:700,color:'var(--text)'}}>
-                    {catIcon(modal.cat)}{modal.cat}
+                  <div style={{fontSize:15,fontWeight:700,color:'var(--text)',display:'flex',alignItems:'center',gap:6}}>
+                    <CatIcon cat={modal.cat} size={14} />{modal.cat}
                   </div>
                 )}
                 <div>
@@ -208,7 +250,7 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
               </div>
               <div className="modal-foot">
                 <div className="modal-foot-l" />
-                <button className="btn btn-sm" style={{background:'var(--border)',color:'var(--text)'}} onClick={closeModal}><X size={13} />Cancel</button>
+                <button className="btn btn-sm" style={{background:'var(--border)',color:'var(--text)'}} onClick={closeModal}><XIcon size={13} />Cancel</button>
                 <button className="btn btn-sm btn-green" onClick={modal.mode === 'add' ? confirmAdd : confirmEdit} disabled={saving}>
                   <Check size={13} />{saving ? '…' : 'Save'}
                 </button>
@@ -217,6 +259,66 @@ export default function Budget({ showStatus, onCategoryClick }: Props) {
           )}
         </div>
       </div>
+
+      {/* Category Transaction Bottom Sheet */}
+      {catSheet && (
+        <div className={`modal-bg ${catSheet ? 'open' : ''}`} onClick={() => setCatSheet(null)} style={{position:'fixed',inset:0,zIndex:1000}}>
+          <div className="sheet-panel" onClick={e => e.stopPropagation()}>
+            <div className="sheet-handle">
+              <div className="sheet-handle-bar" />
+            </div>
+
+            <div className="sheet-hd">
+              <h3 style={{fontSize:16,fontWeight:700,color:'var(--text)',margin:0,display:'flex',alignItems:'center',gap:6}}>
+                <CatIcon cat={catSheet} size={15} />{catSheet}
+              </h3>
+              <div style={{display:'flex',gap:6}}>
+                <button className="icon-btn" onClick={() => openEdit(catSheet, budget[catSheet] || 0)} title="Edit budget"><Pencil size={16} /></button>
+                <button className="modal-close" onClick={() => setCatSheet(null)} style={{padding:0}}><XIcon size={20} /></button>
+              </div>
+            </div>
+
+            <div className="sheet-stats" style={{gridTemplateColumns:'1fr 1fr 1fr'}}>
+              <div className="card" style={{padding:'10px 12px'}}>
+                <div className="lbl">Budget</div>
+                <div style={{fontSize:14,fontWeight:700,color:'var(--text)',marginTop:4}}>{INR(budget[catSheet] || 0)}</div>
+              </div>
+              <div className="card" style={{padding:'10px 12px'}}>
+                <div className="lbl">Spent</div>
+                <div style={{fontSize:14,fontWeight:700,color:'var(--text)',marginTop:4}}>{INR(cm[catSheet] || 0)}</div>
+              </div>
+              <div className="card" style={{padding:'10px 12px',background:(cm[catSheet] || 0) > (budget[catSheet] || 0)?'rgba(239,68,68,.08)':'rgba(34,197,94,.08)'}}>
+                <div className="lbl">{(cm[catSheet] || 0) > (budget[catSheet] || 0)?'Over':'Left'}</div>
+                <div style={{fontSize:14,fontWeight:700,color:(cm[catSheet] || 0) > (budget[catSheet] || 0)?'var(--rm)':'var(--gm)',marginTop:4}}>
+                  {INR(Math.abs((budget[catSheet] || 0) - (cm[catSheet] || 0)))}
+                </div>
+              </div>
+            </div>
+
+            <div className="sheet-body">
+              {rows.filter(r => r.c === catSheet).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).length === 0 ? (
+                <p style={{color:'var(--muted)',textAlign:'center',padding:'1rem 0',fontSize:14}}>No transactions in this category.</p>
+              ) : (
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {rows.filter(r => r.c === catSheet).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(txn => (
+                    <div key={txn.id} className="card" style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',cursor:'pointer'}} onClick={() => {setCatSheet(null); onCategoryClick(catSheet)}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:600,fontSize:13,color:'var(--text)'}}>{txn.desc}</div>
+                        {txn.notes && <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{txn.notes}</div>}
+                        <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{txn.m}</div>
+                      </div>
+                      <div style={{textAlign:'right',flexShrink:0}}>
+                        <div style={{fontWeight:700,fontSize:14,color:'var(--rm)'}}>{INR(txn.a)}</div>
+                        <div style={{fontSize:10,color:'var(--muted)',marginTop:1}}>{txn.date}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

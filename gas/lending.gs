@@ -99,23 +99,31 @@ function _ensureLendingHeader(sh) {
 }
 
 // ── INTERNAL: get (or initialise) the Lending sheet ──────────────────────────
-function _lendingSheet() {
-  Logger.log('_lendingSheet: getting spreadsheet ID');
+function _lendingSheet(sheetName) {
+  const name = sheetName || L_SHEET;
+  Logger.log('_lendingSheet: requesting sheet name=' + name);
+
   const ssId = _getSpreadsheetId('ASSETS_SHEET_ID');
-  Logger.log('_lendingSheet: opening spreadsheet: ' + ssId);
+  Logger.log('_lendingSheet: ASSETS_SHEET_ID=' + ssId);
 
   const ss = SpreadsheetApp.openById(ssId);
-  Logger.log('_lendingSheet: spreadsheet name=' + ss.getName());
+  Logger.log('_lendingSheet: spreadsheet opened, name=' + ss.getName());
 
-  let sh = ss.getSheetByName(L_SHEET);
+  let sh = ss.getSheetByName(name);
   if (!sh) {
-    Logger.log('_lendingSheet: sheet "' + L_SHEET + '" not found, creating');
-    sh = ss.insertSheet(L_SHEET);
+    Logger.log('_lendingSheet: sheet "' + name + '" not found, creating');
+    sh = ss.insertSheet(name);
     sh.appendRow(L_HDR);
-    Logger.log('_lendingSheet: sheet created and header added');
+    Logger.log('_lendingSheet: sheet "' + name + '" created and header added');
   } else {
-    Logger.log('_lendingSheet: sheet "' + L_SHEET + '" found, lastRow=' + sh.getLastRow());
+    Logger.log('_lendingSheet: sheet "' + name + '" exists, lastRow=' + sh.getLastRow());
   }
+
+  // Validate sheet object
+  if (!sh) {
+    throw new Error('Failed to get or create sheet: ' + name);
+  }
+  Logger.log('Sheet used: ' + name);
 
   // Always ensure header is correct
   _ensureLendingHeader(sh);
@@ -124,46 +132,55 @@ function _lendingSheet() {
 }
 
 // ── ROUTER ────────────────────────────────────────────────────────────────────
-function _lendingHandleGet(action) {
-  Logger.log('_lendingHandleGet action: ' + action);
+function _lendingHandleGet(action, sheetName) {
+  const sheet = sheetName || 'Lending';
+  Logger.log('_lendingHandleGet action: ' + action + ', sheet used: ' + sheet);
+
   if (action === 'getEntries') {
-    Logger.log('Calling _lending_getEntries');
-    const result = _lending_getEntries();
-    Logger.log('_lending_getEntries returned: ' + result.length + ' entries');
+    Logger.log('_lendingHandleGet: Calling _lending_getEntries with sheet=' + sheet);
+    const result = _lending_getEntries(sheet);
+    Logger.log('_lendingHandleGet: _lending_getEntries returned ' + result.length + ' entries from sheet "' + sheet + '"');
     return result;
   }
   throw new Error('Unknown lending GET action: ' + action);
 }
 
 function _lendingHandlePost(action, body) {
-  Logger.log('_lendingHandlePost action: ' + action);
+  const sheet = body.sheetName || 'Lending';
+  Logger.log('_lendingHandlePost action: ' + action + ', sheet used: ' + sheet);
+
   if (action === 'addEntry') {
-    Logger.log('Calling _lending_addEntry');
-    return _lending_addEntry(body.date, body.name, body.amount, body.type, body.description);
+    Logger.log('_lendingHandlePost: Calling _lending_addEntry with sheet=' + sheet);
+    return _lending_addEntry(body.date, body.name, body.amount, body.type, body.description, sheet);
   }
   if (action === 'updateEntry') {
-    Logger.log('Calling _lending_updateEntry');
-    return _lending_updateEntry(body.id, body.date, body.name, body.amount, body.type, body.description);
+    Logger.log('_lendingHandlePost: Calling _lending_updateEntry with sheet=' + sheet);
+    return _lending_updateEntry(body.id, body.date, body.name, body.amount, body.type, body.description, sheet);
   }
   if (action === 'deleteEntry') {
-    Logger.log('Calling _lending_deleteEntry');
-    return _lending_deleteEntry(body.id);
+    Logger.log('_lendingHandlePost: Calling _lending_deleteEntry with sheet=' + sheet);
+    return _lending_deleteEntry(body.id, sheet);
   }
   throw new Error('Unknown lending POST action: ' + action);
 }
 
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
-function _lending_getEntries() {
+function _lending_getEntries(sheetName) {
   try {
-    Logger.log('_lending_getEntries: getting sheet');
-    const sh = _lendingSheet();
-    Logger.log('_lending_getEntries: sheet obtained, reading data');
+    const sheet = sheetName || 'Lending';
+    Logger.log('_lending_getEntries: sheet=' + sheet);
+    const sh = _lendingSheet(sheet);
+
+    if (!sh) {
+      throw new Error('Invalid sheet: ' + sheet);
+    }
+    Logger.log('_lending_getEntries: sheet obtained, reading data from "' + sheet + '"');
 
     const vals = sh.getDataRange().getValues();
-    Logger.log('_lending_getEntries: got ' + vals.length + ' rows');
+    Logger.log('_lending_getEntries: got ' + vals.length + ' rows from sheet "' + sheet + '"');
 
     if (vals.length < 2) {
-      Logger.log('_lending_getEntries: only header row or empty');
+      Logger.log('_lending_getEntries: sheet "' + sheet + '" only has header or is empty');
       return [];
     }
 
@@ -189,16 +206,22 @@ function _lending_getEntries() {
   }
 }
 
-function _lending_addEntry(date, name, amount, type, description) {
+function _lending_addEntry(date, name, amount, type, description, sheetName) {
   try {
-    Logger.log('_lending_addEntry: START date=' + date + ', name=' + name + ', amount=' + amount + ', type=' + type);
-    const sh  = _lendingSheet();
-    Logger.log('_lending_addEntry: sheet obtained');
+    const sheet = sheetName || 'Lending';
+    Logger.log('_lending_addEntry: START sheet=' + sheet + ', name=' + name + ', amount=' + amount + ', type=' + type);
+    const sh  = _lendingSheet(sheet);
+
+    if (!sh) {
+      throw new Error('Invalid sheet: ' + sheet);
+    }
+    Logger.log('_lending_addEntry: sheet "' + sheet + '" obtained');
+
     const id  = Utilities.getUuid();
     const amt = parseFloat(amount) || 0;
-    Logger.log('_lending_addEntry: appending row with id=' + id);
+    Logger.log('_lending_addEntry: appending row to sheet "' + sheet + '" with id=' + id);
     sh.appendRow([id, date || '', String(name || '').trim(), amt, String(type || '').toUpperCase(), String(description || '').trim()]);
-    Logger.log('_lending_addEntry: row appended, last row=' + sh.getLastRow());
+    Logger.log('_lending_addEntry: row appended to sheet "' + sheet + '", last row=' + sh.getLastRow());
 
     const row = sh.getLastRow();
     Logger.log('_lending_addEntry: styling row ' + row);
@@ -212,13 +235,19 @@ function _lending_addEntry(date, name, amount, type, description) {
   }
 }
 
-function _lending_updateEntry(id, date, name, amount, type, description) {
+function _lending_updateEntry(id, date, name, amount, type, description, sheetName) {
   try {
-    Logger.log('_lending_updateEntry: START id=' + id + ', name=' + name + ', amount=' + amount);
-    const sh   = _lendingSheet();
-    Logger.log('_lending_updateEntry: sheet obtained');
+    const sheet = sheetName || 'Lending';
+    Logger.log('_lending_updateEntry: START id=' + id + ', sheet=' + sheet + ', name=' + name + ', amount=' + amount);
+    const sh   = _lendingSheet(sheet);
+
+    if (!sh) {
+      throw new Error('Invalid sheet: ' + sheet);
+    }
+    Logger.log('_lending_updateEntry: sheet "' + sheet + '" obtained');
+
     const vals = sh.getDataRange().getValues();
-    Logger.log('_lending_updateEntry: data read, rows=' + vals.length);
+    Logger.log('_lending_updateEntry: data read from sheet "' + sheet + '", rows=' + vals.length);
 
     const targetId = String(id).trim();
 
@@ -252,10 +281,17 @@ function _lending_updateEntry(id, date, name, amount, type, description) {
   }
 }
 
-function _lending_deleteEntry(id) {
+function _lending_deleteEntry(id, sheetName) {
   try {
-    Logger.log('_lending_deleteEntry: id=' + id);
-    const sh   = _lendingSheet();
+    const sheet = sheetName || 'Lending';
+    Logger.log('_lending_deleteEntry: id=' + id + ', sheet=' + sheet);
+    const sh   = _lendingSheet(sheet);
+
+    if (!sh) {
+      throw new Error('Invalid sheet: ' + sheet);
+    }
+    Logger.log('_lending_deleteEntry: sheet "' + sheet + '" obtained, reading data');
+
     const vals = sh.getDataRange().getValues();
     for (let i = vals.length - 1; i >= 1; i--) {
       if (String(vals[i][L_COL.ID]) === String(id)) {
