@@ -13,8 +13,7 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Max-Age': '86400',
-  'Content-Type': 'application/json'
+  'Access-Control-Max-Age': '86400'
 }
 
 export default {
@@ -34,46 +33,38 @@ export default {
         JSON.stringify({ ok: false, error: 'GAS_EXEC_URL not configured' }),
         {
           status: 500,
-          headers: CORS_HEADERS
+          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
         }
       )
     }
 
-    const url = new URL(request.url)
-    const targetUrl = new URL(GAS_EXEC_URL)
-
-    // Forward all query parameters individually
-    console.log('Worker: request.url=' + request.url)
-    console.log('Worker: GAS_EXEC_URL=' + GAS_EXEC_URL)
-
-    url.searchParams.forEach((value, key) => {
-      console.log('Worker: setting param ' + key + '=' + value)
-      targetUrl.searchParams.set(key, value)
-    })
-
-    console.log('Worker: final targetUrl=' + targetUrl.toString())
-
     try {
-      const options = {
+      const url = new URL(request.url)
+      const targetUrl = new URL(GAS_EXEC_URL)
+
+      // Forward all query parameters
+      url.searchParams.forEach((value, key) => {
+        targetUrl.searchParams.set(key, value)
+      })
+
+      // Get body for non-GET requests
+      const body = request.method !== 'GET' ? await request.text() : null
+
+      const response = await fetch(targetUrl.toString(), {
         method: request.method,
         headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Cloudflare-Worker-Proxy'
-        }
-      }
+          'Content-Type': 'application/json'
+        },
+        body: body
+      })
 
-      // Forward body for POST/PUT/PATCH requests
-      if (request.method !== 'GET' && request.method !== 'HEAD') {
-        options.body = await request.text()
-      }
-
-      const response = await fetch(targetUrl.toString(), options)
       const text = await response.text()
 
       return new Response(text, {
         status: response.status,
         headers: {
           ...CORS_HEADERS,
+          'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store, must-revalidate'
         }
       })
@@ -82,7 +73,7 @@ export default {
         JSON.stringify({ ok: false, error: error.message }),
         {
           status: 500,
-          headers: CORS_HEADERS
+          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
         }
       )
     }
