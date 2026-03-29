@@ -165,9 +165,18 @@ function _handleGet(p) {
     Logger.log('_handleGet: routing to gold handler for action=' + p.action);
     return _goldHandleGet(p.action);
   }
+  if (p.module === 'loans') {
+    Logger.log('_handleGet: routing to loans handler for action=' + p.action);
+    return _loansHandleGet(p.action, p);
+  }
   if (p.module === 'settings') {
     Logger.log('_handleGet: routing to settings handler for action=' + p.action);
-    if (p.action === 'get') return _gold_getSettings();
+    if (p.action === 'get') {
+      const goldSettings = _gold_getSettings();
+      const loansSettings = _loans_getSettings();
+      const configSettings = _config_getSettings();
+      return { ...configSettings, ...goldSettings, ...loansSettings };
+    }
     throw new Error('Unknown settings GET action: ' + p.action);
   }
   const action = p.action;
@@ -202,9 +211,22 @@ function _handlePost(body) {
     Logger.log('_handlePost: routing to gold handler for action=' + body.action);
     return _goldHandlePost(body.action, body);
   }
+  if (body.module === 'loans') {
+    Logger.log('_handlePost: routing to loans handler for action=' + body.action);
+    return _loansHandlePost(body.action, body);
+  }
   if (body.module === 'settings') {
     Logger.log('_handlePost: routing to settings handler for action=' + body.action);
-    if (body.action === 'save') return _gold_saveSettings(body.goldRate);
+    if (body.action === 'save') {
+      if (body.goldRate !== undefined) _gold_saveSettings(body.goldRate);
+      if (body.loansSpreadsheetId !== undefined || body.emiSheetName !== undefined || body.jewelLoanSheetName !== undefined) {
+        _loans_saveSettings(body.loansSpreadsheetId, body.emiSheetName, body.jewelLoanSheetName);
+      }
+      if (body.expensesSheetId !== undefined || body.assetsSheetId !== undefined) {
+        _config_saveSettings(body.expensesSheetId, body.assetsSheetId);
+      }
+      return true;
+    }
     throw new Error('Unknown settings POST action: ' + body.action);
   }
   const action = body.action;
@@ -528,6 +550,43 @@ function _geminiProxy(system, prompt, forceTool) {
   }
 
   return msg.content || '';
+}
+
+// ── CONFIG SETTINGS ──────────────────────────────────────────────────────────────
+function _config_getSettings() {
+  try {
+    Logger.log('_config_getSettings: retrieving configuration');
+    const props = PropertiesService.getScriptProperties();
+    const settings = {
+      expensesSheetId: props.getProperty('EXPENSES_SHEET_ID') || '',
+      assetsSheetId: props.getProperty('ASSETS_SHEET_ID') || '',
+    };
+    Logger.log('_config_getSettings: expensesSheetId=' + settings.expensesSheetId + ', assetsSheetId=' + settings.assetsSheetId);
+    return settings;
+  } catch(e) {
+    Logger.log('_config_getSettings ERROR: ' + e.message);
+    throw e;
+  }
+}
+
+function _config_saveSettings(expensesSheetId, assetsSheetId) {
+  try {
+    Logger.log('_config_saveSettings: START');
+    const props = PropertiesService.getScriptProperties();
+    if (expensesSheetId) {
+      props.setProperty('EXPENSES_SHEET_ID', String(expensesSheetId));
+      Logger.log('_config_saveSettings: expensesSheetId=' + expensesSheetId);
+    }
+    if (assetsSheetId) {
+      props.setProperty('ASSETS_SHEET_ID', String(assetsSheetId));
+      Logger.log('_config_saveSettings: assetsSheetId=' + assetsSheetId);
+    }
+    Logger.log('_config_saveSettings: SUCCESS');
+    return true;
+  } catch(e) {
+    Logger.log('_config_saveSettings ERROR: ' + e.message);
+    throw e;
+  }
 }
 
 // ── DEFAULTS ──────────────────────────────────────────────────────────────────

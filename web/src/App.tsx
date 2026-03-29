@@ -9,6 +9,8 @@ import Savings from './pages/Savings'
 import Gold from './pages/Gold'
 import Stocks from './pages/Stocks'
 import MutualFunds from './pages/MutualFunds'
+import EMI from './pages/EMI'
+import JewelLoans from './pages/JewelLoans'
 import Settings from './pages/Settings'
 import { ALLOWED_EMAILS } from './constants'
 
@@ -50,6 +52,8 @@ function Inner() {
     if (module === 'gold') return 'Gold'
     if (module === 'stocks') return 'Stocks'
     if (module === 'mutualfunds') return 'Mutual Funds'
+    if (module === 'emi') return 'EMI Loans'
+    if (module === 'jewelLoans') return 'Jewel Loans'
     if (module === 'settings') return 'Settings'
     return 'FinTracker'
   }
@@ -63,6 +67,8 @@ function Inner() {
       {module === 'gold'        && <Gold onOpenSettings={() => setModule('settings')} />}
       {module === 'stocks'      && <Stocks />}
       {module === 'mutualfunds' && <MutualFunds />}
+      {module === 'emi'         && <EMI />}
+      {module === 'jewelLoans'  && <JewelLoans />}
       {module === 'settings'    && <Settings />}
       <InstallBanner />
     </div>

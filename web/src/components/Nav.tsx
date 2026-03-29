@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { CalendarDays, PiggyBank, Gem, TrendingUp, BarChart2, Wallet, User, Settings } from 'lucide-react'
+import { CalendarDays, PiggyBank, Gem, TrendingUp, BarChart2, Wallet, User, Settings, CreditCard, Landmark } from 'lucide-react'
 import React from 'react'
 
-export type ModuleId = 'monthly' | 'lending' | 'savings' | 'gold' | 'stocks' | 'mutualfunds' | 'settings'
+export type ModuleId = 'monthly' | 'lending' | 'savings' | 'gold' | 'stocks' | 'mutualfunds' | 'emi' | 'jewelLoans' | 'settings'
 
 interface Props {
   module: ModuleId
@@ -163,6 +163,62 @@ export default function Nav({ module, onModule, lendingSheet, onLendingSheet, ti
               ))}
             </div>
           )}
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: '1px', background: 'var(--border)', margin: '8px 14px' }} />
+
+        {/* Loans Section */}
+        <div style={{ paddingTop: 12, paddingBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '12px 14px 8px 14px', marginBottom: 4 }}>
+            Loans
+          </div>
+          <button
+            onClick={() => { onModule('emi'); setDrawerOpen(false) }}
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              padding: '12px 14px',
+              borderRadius: 0,
+              background: module === 'emi' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+              color: '#fff',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: 16,
+              fontWeight: module === 'emi' ? 500 : 400,
+              transition: 'all .15s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <CreditCard size={18} />
+            <span>EMI Loans</span>
+          </button>
+          <button
+            onClick={() => { onModule('jewelLoans'); setDrawerOpen(false) }}
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              padding: '12px 14px',
+              borderRadius: 0,
+              background: module === 'jewelLoans' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+              color: '#fff',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: 16,
+              fontWeight: module === 'jewelLoans' ? 500 : 400,
+              transition: 'all .15s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <Landmark size={18} />
+            <span>Jewel Loans</span>
+          </button>
         </div>
 
         {/* Divider */}

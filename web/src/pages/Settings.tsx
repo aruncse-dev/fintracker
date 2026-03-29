@@ -1,21 +1,41 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Edit2, Check } from 'lucide-react';
 import { api } from '../api';
 
+interface Setting {
+  key: string;
+  label: string;
+  value: string;
+  type: 'text' | 'number';
+}
+
 export default function Settings() {
-  const [goldRate, setGoldRate] = useState('');
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+
+  const SETTING_FIELDS: Setting[] = [
+    { key: 'goldRate', label: 'Gold Rate (₹/gram)', value: '', type: 'number' },
+    { key: 'expensesSheetId', label: 'Expenses Spreadsheet ID', value: '', type: 'text' },
+    { key: 'assetsSheetId', label: 'Assets Spreadsheet ID', value: '', type: 'text' },
+    { key: 'loansSpreadsheetId', label: 'Loans Spreadsheet ID', value: '', type: 'text' },
+    { key: 'jewelLoanSheetName', label: 'Jewel Loan Sheet Name', value: '', type: 'text' },
+  ];
 
   // Load settings on mount
   const loadSettings = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const settings = await api.getSettings();
-      setGoldRate(String(settings.goldRate));
+      const data = await api.getSettings();
+      const loaded: Record<string, string> = {};
+      SETTING_FIELDS.forEach(field => {
+        loaded[field.key] = String(data[field.key as keyof typeof data] || '');
+      });
+      setSettings(loaded);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load settings');
     } finally {
@@ -27,20 +47,13 @@ export default function Settings() {
     loadSettings();
   }, [loadSettings]);
 
-  async function save() {
-    const rate = parseFloat(goldRate);
-    if (isNaN(rate) || rate <= 0) {
-      setError('Gold rate must be a positive number');
-      return;
-    }
-
+  async function saveField(key: string, value: string) {
     setSaving(true);
     setError('');
-    setSaved(false);
     try {
-      await api.saveSettings({ goldRate: rate });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      await api.saveSettings({ [key]: value });
+      setSettings(prev => ({ ...prev, [key]: value }));
+      setEditingKey(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed');
     } finally {
@@ -48,12 +61,16 @@ export default function Settings() {
     }
   }
 
+  function startEdit(key: string) {
+    setEditingKey(key);
+    setEditValue(settings[key] || '');
+  }
+
   return (
     <div style={{ paddingBottom: 40 }}>
       <div className="pg">
-        {/* Gold Settings Section */}
         <div className="sec">
-          <div className="sec-h">Gold Settings</div>
+          <div className="sec-h">Configuration</div>
 
           {loading && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '1rem 0', color: 'var(--muted)', fontSize: 14 }}>
@@ -61,67 +78,75 @@ export default function Settings() {
             </div>
           )}
 
-          {!loading && (
-            <>
-              <div className="form-row">
-                <label className="form-lbl">Gold Rate (₹/gram)</label>
-                <input
-                  className="form-inp mono"
-                  type="number"
-                  min="1"
-                  step="0.01"
-                  value={goldRate}
-                  onChange={e => setGoldRate(e.target.value)}
-                />
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-                  Used to calculate estimated gold value
-                </div>
-              </div>
-
-              {error && (
-                <p style={{ color: '#EF4444', fontSize: 13, padding: '12px 10px', marginTop: 12 }}>
-                  ⚠ {error}
-                </p>
-              )}
-
-              <div style={{ marginTop: 20, display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button
-                  className="btn btn-sm btn-green"
-                  onClick={save}
-                  disabled={saving || !goldRate}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 size={14} className="spin-icon" /> Saving…
-                    </>
-                  ) : (
-                    'Save'
-                  )}
-                </button>
-
-                {saved && (
-                  <span style={{ fontSize: 13, color: '#10B981', fontWeight: 600 }}>
-                    ✓ Saved
-                  </span>
-                )}
-              </div>
-            </>
+          {error && (
+            <p style={{ color: '#EF4444', fontSize: 13, padding: '12px 10px', marginBottom: 12 }}>
+              ⚠ {error}
+            </p>
           )}
-        </div>
 
-        {/* Future-Ready Sections */}
-        <div className="sec">
-          <div className="sec-h">Display</div>
-          <p style={{ color: 'var(--muted)', padding: '1rem 0', fontSize: 14 }}>
-            Currency and other display preferences coming soon.
-          </p>
-        </div>
+          {!loading && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {SETTING_FIELDS.map(field => (
+                <div key={field.key} style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{field.label}</label>
 
-        <div className="sec">
-          <div className="sec-h">Preferences</div>
-          <p style={{ color: 'var(--muted)', padding: '1rem 0', fontSize: 14 }}>
-            Additional preferences and options will be added here.
-          </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {editingKey === field.key ? (
+                      <>
+                        <input
+                          autoFocus
+                          type={field.type}
+                          value={editValue}
+                          onChange={e => setEditValue(e.target.value)}
+                          className={`form-inp ${field.type === 'text' ? 'mono' : ''}`}
+                          style={{ flex: 1, maxWidth: 400 }}
+                        />
+                        <button
+                          onClick={() => saveField(field.key, editValue)}
+                          disabled={saving}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: saving ? 'not-allowed' : 'pointer',
+                            color: 'var(--muted)',
+                            padding: '4px 8px',
+                            opacity: saving ? 0.5 : 1,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {saving ? <Loader2 size={16} className="spin-icon" /> : <Check size={16} />}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          type={field.type}
+                          value={settings[field.key] || ''}
+                          readOnly
+                          className={`form-inp ${field.type === 'text' ? 'mono' : ''}`}
+                          style={{ flex: 1, maxWidth: 400, cursor: 'pointer' }}
+                          onClick={() => startEdit(field.key)}
+                        />
+                        <button
+                          onClick={() => startEdit(field.key)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--muted)',
+                            padding: '4px 8px',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

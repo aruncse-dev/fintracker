@@ -108,8 +108,46 @@ export interface RawGoldHistoryRow {
   note?: string;
 }
 
+export interface RawEmiRow {
+  id: string;
+  name: string;
+  bank: string;
+  principal: number | string;
+  rate: number | string;
+  start_date: string;
+  tenure_months: number | string;
+  emi_amount: number | string;
+  paid_emis: number | string;
+  status: string;
+}
+
+export interface RawJewelLoanRow {
+  id: string;
+  name: string;
+  bank: string;
+  principal: number | string;
+  rate: number | string;
+  start_date: string;
+  end_date: string;
+  paid_amount: number | string;
+  status: string;
+}
+
+export interface RawJewelLoanHistoryRow {
+  id: string;
+  loan_id: string;
+  date: string;
+  amount: number | string;
+  note?: string;
+}
+
 export interface GoldSettings {
   goldRate: number;
+  loansSpreadsheetId?: string;
+  emiSheetName?: string;
+  jewelLoanSheetName?: string;
+  expensesSheetId?: string;
+  assetsSheetId?: string;
 }
 
 export interface RawHolding {
@@ -150,6 +188,18 @@ export const api = {
   addGoldHistory:    (p: Record<string, unknown>) => post<string>({ module: 'gold', action: 'addHistory', ...p }),
   updateGoldHistory: (p: Record<string, unknown>) => post<{ success: boolean }>({ module: 'gold', action: 'updateHistory', ...p }),
   deleteGoldHistory: (id: string)                 => post<{ success: boolean }>({ module: 'gold', action: 'deleteHistory', id }),
+  getEmi:    ()                            => get<RawEmiRow[]>('getEntries', { module: 'loans' }),
+  addEmi:    (p: Record<string, unknown>) => post<string>({ module: 'loans', action: 'addEntry', ...p }),
+  updateEmi: (p: Record<string, unknown>) => post<boolean>({ module: 'loans', action: 'updateEntry', ...p }),
+  deleteEmi: (id: string)                 => post<boolean>({ module: 'loans', action: 'deleteEntry', id }),
+  getJewelLoans:         ()                            => get<RawJewelLoanRow[]>('getEntries', { module: 'loans', type: 'jewel' }),
+  addJewelLoan:          (p: Record<string, unknown>) => post<string>({ module: 'loans', action: 'addEntry', type: 'jewel', ...p }),
+  updateJewelLoan:       (p: Record<string, unknown>) => post<boolean>({ module: 'loans', action: 'updateEntry', type: 'jewel', ...p }),
+  deleteJewelLoan:       (id: string)                 => post<boolean>({ module: 'loans', action: 'deleteEntry', type: 'jewel', id }),
+  getJewelLoanHistory:    ()                           => get<RawJewelLoanHistoryRow[]>('getHistory', { module: 'loans', type: 'jewel' }),
+  addJewelLoanHistory:    (p: Record<string, unknown>) => post<string>({ module: 'loans', action: 'addHistory', type: 'jewel', ...p }),
+  updateJewelLoanHistory: (p: Record<string, unknown>) => post<boolean>({ module: 'loans', action: 'updateHistory', type: 'jewel', ...p }),
+  deleteJewelLoanHistory: (id: string)                 => post<boolean>({ module: 'loans', action: 'deleteHistory', type: 'jewel', id }),
   getSettings:   ()                            => get<GoldSettings>('get', { module: 'settings' }),
   saveSettings:  (p: Record<string, unknown>) => post<boolean>({ module: 'settings', action: 'save', ...p }),
   getTokenStatus: ()                           => get<{ hasToken: boolean }>('getTokenStatus', { module: 'stocks' }),
