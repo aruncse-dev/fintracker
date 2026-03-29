@@ -55,8 +55,8 @@ export default function Nav({ module, onModule, lendingSheet, onLendingSheet, ti
         </div>
 
         {/* Primary Section — Tracking */}
-        <div style={{ paddingTop: 12, paddingBottom: 8 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '12px 14px 8px 14px', marginBottom: 4 }}>
+        <div style={{ paddingTop: 8, paddingBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '8px 14px 4px 14px', marginBottom: 2 }}>
             Tracking
           </div>
           {MODULES_LG.slice(0, 2).map(m => (
@@ -87,12 +87,9 @@ export default function Nav({ module, onModule, lendingSheet, onLendingSheet, ti
           ))}
         </div>
 
-        {/* Divider */}
-        <div style={{ height: '1px', background: 'var(--border)', margin: '8px 14px' }} />
-
         {/* Assets Section */}
-        <div style={{ paddingTop: 12, paddingBottom: 8 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '12px 14px 8px 14px', marginBottom: 4 }}>
+        <div style={{ paddingTop: 8, paddingBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '8px 14px 4px 14px', marginBottom: 2 }}>
             Assets
           </div>
           {MODULES_LG.slice(2).map(m => (
@@ -123,12 +120,9 @@ export default function Nav({ module, onModule, lendingSheet, onLendingSheet, ti
           ))}
         </div>
 
-        {/* Divider */}
-        <div style={{ height: '1px', background: 'var(--border)', margin: '8px 14px' }} />
-
         {/* Balances Section */}
-        <div style={{ paddingTop: 12, paddingBottom: 8 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '12px 14px 8px 14px', marginBottom: 4 }}>
+        <div style={{ paddingTop: 8, paddingBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '8px 14px 4px 14px', marginBottom: 2 }}>
             Balances
           </div>
 
@@ -165,12 +159,9 @@ export default function Nav({ module, onModule, lendingSheet, onLendingSheet, ti
           )}
         </div>
 
-        {/* Divider */}
-        <div style={{ height: '1px', background: 'var(--border)', margin: '8px 14px' }} />
-
         {/* Loans Section */}
-        <div style={{ paddingTop: 12, paddingBottom: 8 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '12px 14px 8px 14px', marginBottom: 4 }}>
+        <div style={{ paddingTop: 8, paddingBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '8px 14px 4px 14px', marginBottom: 2 }}>
             Loans
           </div>
           <button
@@ -220,9 +211,6 @@ export default function Nav({ module, onModule, lendingSheet, onLendingSheet, ti
             <span>Jewel Loans</span>
           </button>
         </div>
-
-        {/* Divider */}
-        <div style={{ height: '1px', background: 'var(--border)', margin: '8px 14px' }} />
 
         {/* Settings Section */}
         <div style={{ paddingTop: 12, paddingBottom: 8 }}>

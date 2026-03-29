@@ -26,9 +26,9 @@ function _getEmiSheetName() {
   return PropertiesService.getScriptProperties().getProperty('EMI_SHEET_NAME') || DEFAULT_E_SHEET;
 }
 
-// Get the Jewel Loan sheet name from properties (defaults to 'Jewel Loans')
+// Get the Jewel Loan sheet name (always uses 'Jewel Loan')
 function _getJewelLoanSheetName() {
-  return PropertiesService.getScriptProperties().getProperty('JEWEL_LOAN_SHEET_NAME') || DEFAULT_JL_SHEET;
+  return DEFAULT_JL_SHEET;
 }
 
 // Get the EMI loans sheet with header validation
@@ -114,16 +114,14 @@ function _loans_getSettings() {
   return {
     loansSpreadsheetId: props.getProperty('LOANS_SPREADSHEET_ID') || '',
     emiSheetName: props.getProperty('EMI_SHEET_NAME') || DEFAULT_E_SHEET,
-    jewelLoanSheetName: props.getProperty('JEWEL_LOAN_SHEET_NAME') || DEFAULT_JL_SHEET,
   };
 }
 
 // Write loans settings to properties
-function _loans_saveSettings(loansSpreadsheetId, emiSheetName, jewelLoanSheetName) {
+function _loans_saveSettings(loansSpreadsheetId, emiSheetName) {
   const props = PropertiesService.getScriptProperties();
   if (loansSpreadsheetId) props.setProperty('LOANS_SPREADSHEET_ID', String(loansSpreadsheetId));
   if (emiSheetName) props.setProperty('EMI_SHEET_NAME', String(emiSheetName));
-  if (jewelLoanSheetName) props.setProperty('JEWEL_LOAN_SHEET_NAME', String(jewelLoanSheetName));
   return true;
 }
 

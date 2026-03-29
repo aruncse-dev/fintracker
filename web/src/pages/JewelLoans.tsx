@@ -302,13 +302,6 @@ export default function JewelLoans() {
     setPayForm(f => ({ ...f, [k]: v }));
   }
 
-  function openPayModal(loanId: string) {
-    setPayLoanId(loanId);
-    setPayForm(emptyPaymentForm());
-    setPayError('');
-    setPayModalOpen(true);
-  }
-
   async function savePayment() {
     if (!payForm.amount || !payLoanId) return;
 
@@ -385,31 +378,19 @@ export default function JewelLoans() {
 
         {/* KPI Cards */}
         <div className="kpis" style={{ marginBottom: '1.5rem' }}>
-          <div className="card" style={{ padding: '10px 14px' }}>
-            <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>
-              Total Principal (₹)
-            </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)' }}>
-              {INR(totalPrincipal)}
-            </div>
+          <div className="kpi">
+            <div className="kpi-l">Total Principal</div>
+            <div className="kpi-v">{INR(totalPrincipal)}</div>
           </div>
 
-          <div className="card" style={{ padding: '10px 14px' }}>
-            <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>
-              Total Paid (₹)
-            </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#10B981' }}>
-              {INR(totalPaid)}
-            </div>
+          <div className="kpi">
+            <div className="kpi-l">Total Paid</div>
+            <div className="kpi-v" style={{ color: '#10B981' }}>{INR(totalPaid)}</div>
           </div>
 
-          <div className="card" style={{ padding: '10px 14px' }}>
-            <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>
-              Total Outstanding (₹)
-            </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#EF4444' }}>
-              {INR(totalOutstanding)}
-            </div>
+          <div className="kpi">
+            <div className="kpi-l">Total Outstanding</div>
+            <div className="kpi-v" style={{ color: '#EF4444' }}>{INR(totalOutstanding)}</div>
           </div>
         </div>
 
@@ -480,7 +461,7 @@ export default function JewelLoans() {
 
                       <div>
                         <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 4 }}>
-                          Interest (₹)
+                          Interest
                         </div>
                         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
                           {INR(interest)}
@@ -535,73 +516,12 @@ export default function JewelLoans() {
                         </div>
                       </div>
                     </div>
-
-                    {/* Add Payment Button */}
-                    <button
-                      onClick={() => openPayModal(loan.id)}
-                      style={{
-                        marginTop: '8px',
-                        padding: '8px 12px',
-                        background: 'var(--navy)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'opacity 0.15s',
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
-                      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-                    >
-                      + Add Payment
-                    </button>
                   </div>
                 );
               })}
             </div>
           )}
         </div>
-
-            {/* Repayment History Section - Only on Dashboard if exists */}
-            {!loading && payments.length > 0 && (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', marginTop: '2rem' }}>
-                  <BarChart3 size={20} style={{ color: 'var(--text)' }} />
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Recent Repayments</div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {payments.slice(0, 3).map(payment => {
-                    const loan = loans.find(l => l.id === payment.loan_id);
-                    return (
-                      <div key={payment.id} className="card" style={{ padding: '12px 14px', marginBottom: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
-                              {INR(payment.amount)}
-                            </div>
-                            <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                              {fmtDate(payment.date)}
-                            </div>
-                          </div>
-                          {loan && (
-                            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: '4px' }}>
-                              {loan.name}
-                            </div>
-                          )}
-                          {payment.note && (
-                            <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>
-                              {payment.note}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
           </>
         )}
 
@@ -624,7 +544,7 @@ export default function JewelLoans() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {payments.map(payment => {
                   const loan = loans.find(l => l.id === payment.loan_id);
-                  const isConfirming = delPaymentId === payment.id;
+                  const isConfirming = delPaymentId === payment.id && delPaymentConfirm;
                   return (
                     <div key={payment.id} className="card" style={{ padding: '12px 14px', marginBottom: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div style={{ flex: 1 }}>
@@ -672,7 +592,7 @@ export default function JewelLoans() {
 
       {/* FAB — Add button */}
       <button
-        onClick={openAddLoan}
+        onClick={() => activeTab === 'dashboard' ? openAddLoan() : setPayModalOpen(true)}
         style={{
           position: 'fixed',
           bottom: 24,
@@ -840,6 +760,24 @@ export default function JewelLoans() {
                 <p style={{ color: '#EF4444', fontSize: 13, padding: '12px 10px', marginBottom: 12 }}>
                   ⚠ {payError}
                 </p>
+              )}
+
+              {!payLoanId && (
+                <div className="form-row">
+                  <label className="form-lbl">Loan *</label>
+                  <select
+                    className="form-sel"
+                    value={payLoanId}
+                    onChange={e => setPayLoanId(e.target.value)}
+                  >
+                    <option value="">Select a loan</option>
+                    {loans.map(loan => (
+                      <option key={loan.id} value={loan.id}>
+                        {loan.name} ({loan.bank})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
 
               <div className="form-row">

@@ -42,10 +42,10 @@ body {
 .nav-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 150; }
 
 /* DRAWER PANEL */
-.nav-drawer { position: fixed; top: 0; left: 0; height: 100dvh; width: 260px; background: var(--navy-dark); z-index: 160; transform: translateX(-100%); transition: transform .25s ease; display: flex; flex-direction: column; box-shadow: 4px 0 24px rgba(0,0,0,.4); }
+.nav-drawer { position: fixed; top: 0; left: 0; height: 100dvh; width: 260px; background: var(--navy-dark); z-index: 160; transform: translateX(-100%); transition: transform .25s ease; display: flex; flex-direction: column; box-shadow: 4px 0 24px rgba(0,0,0,.4); overflow-y: auto; }
 .nav-drawer.open { transform: translateX(0); }
-.nav-drawer-hd { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid rgba(255,255,255,.1); }
-.nav-drawer-item { display: flex; align-items: center; gap: 12px; padding: 13px 20px; border: none; background: transparent; color: rgba(255,255,255,.75); font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: background .15s, color .15s; touch-action: manipulation; }
+.nav-drawer-hd { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.nav-drawer-item { display: flex; align-items: center; gap: 12px; padding: 11px 16px; margin: 0; border: none; background: transparent; color: rgba(255,255,255,.75); font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: background .15s, color .15s; touch-action: manipulation; }
 .nav-drawer-item.active { color: #fff; background: rgba(255,255,255,.12); font-weight: 700; }
 .nav-drawer-item:active { background: rgba(255,255,255,.08); }
 

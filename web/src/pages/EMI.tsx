@@ -323,40 +323,24 @@ export default function EMI() {
 
         {/* KPI Cards */}
         <div className="kpis" style={{ marginBottom: '1.5rem' }}>
-          <div className="card" style={{ padding: '10px 14px' }}>
-            <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>
-              Monthly EMIs (₹)
-            </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)' }}>
-              {INR(totalMonthlyEmis)}
-            </div>
+          <div className="kpi">
+            <div className="kpi-l">Monthly EMIs</div>
+            <div className="kpi-v">{INR(totalMonthlyEmis)}</div>
           </div>
 
-          <div className="card" style={{ padding: '10px 14px' }}>
-            <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>
-              Total Loan Paid (₹)
-            </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#10B981' }}>
-              {INR(totalPaid)}
-            </div>
+          <div className="kpi">
+            <div className="kpi-l">Total Loan Paid</div>
+            <div className="kpi-v" style={{ color: '#10B981' }}>{INR(totalPaid)}</div>
           </div>
 
-          <div className="card" style={{ padding: '10px 14px' }}>
-            <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>
-              Total Loan (₹)
-            </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)' }}>
-              {INR(totalLoanValue)}
-            </div>
+          <div className="kpi">
+            <div className="kpi-l">Total Loan</div>
+            <div className="kpi-v">{INR(totalLoanValue)}</div>
           </div>
 
-          <div className="card" style={{ padding: '10px 14px' }}>
-            <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>
-              Outstanding (₹)
-            </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#EF4444' }}>
-              {INR(totalOutstanding)}
-            </div>
+          <div className="kpi">
+            <div className="kpi-l">Outstanding</div>
+            <div className="kpi-v" style={{ color: '#EF4444' }}>{INR(totalOutstanding)}</div>
           </div>
         </div>
 

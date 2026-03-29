@@ -22,7 +22,6 @@ export default function Settings() {
     { key: 'expensesSheetId', label: 'Expenses Spreadsheet ID', value: '', type: 'text' },
     { key: 'assetsSheetId', label: 'Assets Spreadsheet ID', value: '', type: 'text' },
     { key: 'loansSpreadsheetId', label: 'Loans Spreadsheet ID', value: '', type: 'text' },
-    { key: 'jewelLoanSheetName', label: 'Jewel Loan Sheet Name', value: '', type: 'text' },
   ];
 
   // Load settings on mount

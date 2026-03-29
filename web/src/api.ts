@@ -145,7 +145,6 @@ export interface GoldSettings {
   goldRate: number;
   loansSpreadsheetId?: string;
   emiSheetName?: string;
-  jewelLoanSheetName?: string;
   expensesSheetId?: string;
   assetsSheetId?: string;
 }

@@ -219,8 +219,8 @@ function _handlePost(body) {
     Logger.log('_handlePost: routing to settings handler for action=' + body.action);
     if (body.action === 'save') {
       if (body.goldRate !== undefined) _gold_saveSettings(body.goldRate);
-      if (body.loansSpreadsheetId !== undefined || body.emiSheetName !== undefined || body.jewelLoanSheetName !== undefined) {
-        _loans_saveSettings(body.loansSpreadsheetId, body.emiSheetName, body.jewelLoanSheetName);
+      if (body.loansSpreadsheetId !== undefined || body.emiSheetName !== undefined) {
+        _loans_saveSettings(body.loansSpreadsheetId, body.emiSheetName);
       }
       if (body.expensesSheetId !== undefined || body.assetsSheetId !== undefined) {
         _config_saveSettings(body.expensesSheetId, body.assetsSheetId);

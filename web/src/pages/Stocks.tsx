@@ -56,9 +56,9 @@ export default function Stocks() {
       setHoldings(data as Holding[]);
     } catch (err: any) {
       console.error('Failed to load holdings:', err);
-      if (err.message === 'REAUTH_REQUIRED') {
+      if (err.message === 'REAUTH_REQUIRED' || err.message === 'TOKEN_EXPIRED') {
         setHasToken(false);
-        setError('Session expired. Please reconnect.');
+        setError('Access token expired. Please reconnect.');
       } else {
         setError(err.message || 'Failed to load holdings');
       }
