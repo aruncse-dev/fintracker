@@ -38,6 +38,7 @@ function setAssetsSheetId(id) {
 }
 
 // ── INTERNAL: ensure header row exists at row 1 ────────────────────────────────
+// STRICT: Never clears or truncates data. Only validates headers.
 function _ensureLendingHeader(sh) {
   try {
     const lastRow = sh.getLastRow();
@@ -48,50 +49,24 @@ function _ensureLendingHeader(sh) {
       Logger.log('_ensureLendingHeader: sheet is empty, appending header');
       sh.appendRow(L_HDR);
       Logger.log('_ensureLendingHeader: header appended');
-    } else {
-      // Sheet has data, check first row
+    } else if (lastRow >= 1) {
+      // Sheet has data - VALIDATE header only, NEVER clear or modify
       try {
         const firstRow = sh.getRange(1, 1, 1, L_HDR.length).getValues()[0];
         const isHeader = L_HDR.every((col, i) => String(firstRow[i] || '').trim() === col);
 
         if (!isHeader) {
-          Logger.log('_ensureLendingHeader: header incorrect, rebuilding');
-          // Clear row 1 and set header values
-          sh.getRange(1, 1, 1, L_HDR.length).clearContent();
-          for (let i = 0; i < L_HDR.length; i++) {
-            sh.getRange(1, i + 1).setValue(L_HDR[i]);
-          }
-          Logger.log('_ensureLendingHeader: header rebuilt');
+          Logger.log('_ensureLendingHeader: header mismatch detected, but NOT modifying to preserve data');
+          Logger.log('_ensureLendingHeader: first row content: ' + JSON.stringify(firstRow));
+          // Do NOT clear or modify - just log the issue
         } else {
           Logger.log('_ensureLendingHeader: header is correct');
         }
       } catch(e) {
-        // If first row check fails, rebuild it
-        Logger.log('_ensureLendingHeader: first row check failed, rebuilding header');
-        try {
-          sh.getRange(1, 1, 1, L_HDR.length).clearContent();
-        } catch(e2) {}
-        for (let i = 0; i < L_HDR.length; i++) {
-          sh.getRange(1, i + 1).setValue(L_HDR[i]);
-        }
+        Logger.log('_ensureLendingHeader: first row check failed, but preserving all data: ' + e.message);
+        // Do NOT modify the sheet
       }
     }
-
-    // Apply minimal formatting (safer than full styling)
-    try {
-      const hdr = sh.getRange(1, 1, 1, L_HDR.length);
-      hdr.setFontWeight('bold').setBackground('#1E1B4B').setFontColor('#FFFFFF');
-      sh.setFrozenRows(1);
-      Logger.log('_ensureLendingHeader: formatting applied');
-    } catch(e) {
-      Logger.log('_ensureLendingHeader: formatting skipped (' + e.message + ')');
-    }
-
-    // Hide ID column (optional, non-critical)
-    try {
-      sh.setColumnWidth(1, 40);
-      sh.hideColumns(1);
-    } catch(e) {}
   } catch(e) {
     Logger.log('_ensureLendingHeader ERROR: ' + e.message);
     throw e;
@@ -219,14 +194,19 @@ function _lending_addEntry(date, name, amount, type, description, sheetName) {
 
     const id  = Utilities.getUuid();
     const amt = parseFloat(amount) || 0;
-    Logger.log('_lending_addEntry: appending row to sheet "' + sheet + '" with id=' + id);
-    sh.appendRow([id, date || '', String(name || '').trim(), amt, String(type || '').toUpperCase(), String(description || '').trim()]);
-    Logger.log('_lending_addEntry: row appended to sheet "' + sheet + '", last row=' + sh.getLastRow());
 
-    const row = sh.getLastRow();
-    Logger.log('_lending_addEntry: styling row ' + row);
-    _lendingStyleRow(sh, row, String(type || ''));
-    Logger.log('_lending_addEntry: styling complete');
+    const rowCountBefore = sh.getLastRow();
+    Logger.log('_lending_addEntry: row count before append=' + rowCountBefore + ', appending with id=' + id);
+
+    sh.appendRow([id, date || '', String(name || '').trim(), amt, String(type || '').toUpperCase(), String(description || '').trim()]);
+
+    const rowCountAfter = sh.getLastRow();
+    Logger.log('_lending_addEntry: row count after append=' + rowCountAfter);
+
+    if (rowCountAfter !== rowCountBefore + 1) {
+      throw new Error('Data append verification failed: expected ' + (rowCountBefore + 1) + ' rows, got ' + rowCountAfter);
+    }
+
     Logger.log('_lending_addEntry: SUCCESS id=' + id);
     return id;
   } catch(e) {
@@ -247,34 +227,48 @@ function _lending_updateEntry(id, date, name, amount, type, description, sheetNa
     Logger.log('_lending_updateEntry: sheet "' + sheet + '" obtained');
 
     const vals = sh.getDataRange().getValues();
-    Logger.log('_lending_updateEntry: data read from sheet "' + sheet + '", rows=' + vals.length);
+    const rowCountBefore = sh.getLastRow();
+    Logger.log('_lending_updateEntry: data read from sheet "' + sheet + '", rows=' + vals.length + ', row count=' + rowCountBefore);
 
     const targetId = String(id).trim();
+    let targetRow = -1;
 
     for (let i = 1; i < vals.length; i++) {
       const rowId = String(vals[i][L_COL.ID] || "").trim();
       Logger.log('_lending_updateEntry: comparing rowId="' + rowId + '" with targetId="' + targetId + '"');
 
       if (rowId === targetId) {
-        Logger.log('_lending_updateEntry: found entry at row ' + (i + 1));
-        const amt = parseFloat(amount) || 0;
-        const rowNum = i + 1;
-        Logger.log('_lending_updateEntry: setting values for row ' + rowNum);
-        sh.getRange(rowNum, 1, 1, L_HDR.length).setValues([[
-          id,
-          date || '',
-          String(name || '').trim(),
-          amt,
-          String(type || '').toUpperCase(),
-          String(description || '').trim(),
-        ]]);
-        Logger.log('_lending_updateEntry: values set, styling row');
-        _lendingStyleRow(sh, rowNum, String(type || ''));
-        Logger.log('_lending_updateEntry: SUCCESS');
-        return true;
+        targetRow = i + 1;
+        Logger.log('_lending_updateEntry: found entry at row ' + targetRow);
+        break;
       }
     }
-    throw new Error('Lending entry not found: ' + id);
+
+    if (targetRow === -1) {
+      throw new Error('Lending entry not found: ' + id);
+    }
+
+    const amt = parseFloat(amount) || 0;
+    Logger.log('_lending_updateEntry: setting values for row ' + targetRow);
+
+    sh.getRange(targetRow, 1, 1, L_HDR.length).setValues([[
+      id,
+      date || '',
+      String(name || '').trim(),
+      amt,
+      String(type || '').toUpperCase(),
+      String(description || '').trim(),
+    ]]);
+
+    const rowCountAfter = sh.getLastRow();
+    Logger.log('_lending_updateEntry: row count before=' + rowCountBefore + ', after=' + rowCountAfter);
+
+    if (rowCountAfter !== rowCountBefore) {
+      throw new Error('Data update verification failed: row count changed from ' + rowCountBefore + ' to ' + rowCountAfter);
+    }
+
+    Logger.log('_lending_updateEntry: SUCCESS');
+    return true;
   } catch(e) {
     Logger.log('_lending_updateEntry ERROR: ' + e.message + ' | Stack: ' + e.stack);
     throw e;
@@ -293,28 +287,37 @@ function _lending_deleteEntry(id, sheetName) {
     Logger.log('_lending_deleteEntry: sheet "' + sheet + '" obtained, reading data');
 
     const vals = sh.getDataRange().getValues();
+    const rowCountBefore = sh.getLastRow();
+    Logger.log('_lending_deleteEntry: row count before delete=' + rowCountBefore);
+
+    let targetRow = -1;
+
+    // Find the target row (search backwards)
     for (let i = vals.length - 1; i >= 1; i--) {
       if (String(vals[i][L_COL.ID]) === String(id)) {
-        Logger.log('_lending_deleteEntry: found entry at row ' + (i + 1));
-        sh.deleteRow(i + 1);
-        Logger.log('_lending_deleteEntry: success');
-        return true;
+        targetRow = i + 1;
+        Logger.log('_lending_deleteEntry: found entry at row ' + targetRow);
+        break;
       }
     }
-    throw new Error('Lending entry not found: ' + id);
+
+    if (targetRow === -1) {
+      throw new Error('Lending entry not found: ' + id);
+    }
+
+    sh.deleteRow(targetRow);
+
+    const rowCountAfter = sh.getLastRow();
+    Logger.log('_lending_deleteEntry: row count after delete=' + rowCountAfter);
+
+    if (rowCountAfter !== rowCountBefore - 1) {
+      throw new Error('Data delete verification failed: expected ' + (rowCountBefore - 1) + ' rows, got ' + rowCountAfter);
+    }
+
+    Logger.log('_lending_deleteEntry: success');
+    return true;
   } catch(e) {
-    Logger.log('_lending_deleteEntry ERROR: ' + e.message);
+    Logger.log('_lending_deleteEntry ERROR: ' + e.message + ' | Stack: ' + e.stack);
     throw e;
   }
-}
-
-// ── FORMATTING ────────────────────────────────────────────────────────────────
-function _lendingStyleRow(sh, rowNum, type) {
-  const isRepay = type.toUpperCase() === 'REPAY';
-  const bg = isRepay ? '#F0FDF4' : '#FEF2F2';
-  const fg = isRepay ? '#166534' : '#991B1B';
-  sh.getRange(rowNum, 2, 1, L_HDR.length - 1).setBackground(bg).setFontColor(fg);
-  sh.getRange(rowNum, L_COL.AMT + 1).setFontWeight('bold').setNumberFormat('₹#,##,##0.00').setHorizontalAlignment('right');
-  sh.getRange(rowNum, L_COL.DATE + 1).setNumberFormat('dd-mmm-yy').setHorizontalAlignment('center');
-  sh.getRange(rowNum, L_COL.TYPE + 1).setHorizontalAlignment('center');
 }

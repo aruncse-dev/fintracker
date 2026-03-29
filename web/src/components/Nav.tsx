@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { CalendarDays, PiggyBank, Gem, TrendingUp, BarChart2, Wallet, User } from 'lucide-react'
+import { CalendarDays, PiggyBank, Gem, TrendingUp, BarChart2, Wallet, User, Settings } from 'lucide-react'
 import React from 'react'
 
-export type ModuleId = 'monthly' | 'lending' | 'savings' | 'gold' | 'stocks' | 'mutualfunds'
+export type ModuleId = 'monthly' | 'lending' | 'savings' | 'gold' | 'stocks' | 'mutualfunds' | 'settings'
 
 interface Props {
   module: ModuleId
@@ -54,7 +54,7 @@ export default function Nav({ module, onModule, lendingSheet, onLendingSheet, ti
           <button className="modal-close" onClick={() => setDrawerOpen(false)}>×</button>
         </div>
 
-        {/* Primary Section */}
+        {/* Primary Section — Tracking */}
         <div style={{ paddingTop: 12, paddingBottom: 8 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '12px 14px 8px 14px', marginBottom: 4 }}>
             Tracking
@@ -85,9 +85,50 @@ export default function Nav({ module, onModule, lendingSheet, onLendingSheet, ti
               <span>{m.label}</span>
             </button>
           ))}
+        </div>
 
-          {/* Balances Section Header */}
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '12px 14px 8px 14px', marginBottom: 4, marginTop: 8 }}>
+        {/* Divider */}
+        <div style={{ height: '1px', background: 'var(--border)', margin: '8px 14px' }} />
+
+        {/* Assets Section */}
+        <div style={{ paddingTop: 12, paddingBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '12px 14px 8px 14px', marginBottom: 4 }}>
+            Assets
+          </div>
+          {MODULES_LG.slice(2).map(m => (
+            <button
+              key={m.id}
+              onClick={() => { onModule(m.id); setDrawerOpen(false) }}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '12px 14px',
+                borderRadius: 0,
+                background: 'transparent',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: 16,
+                fontWeight: 500,
+                transition: 'all .15s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              {m.icon}
+              <span>{m.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: '1px', background: 'var(--border)', margin: '8px 14px' }} />
+
+        {/* Balances Section */}
+        <div style={{ paddingTop: 12, paddingBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '12px 14px 8px 14px', marginBottom: 4 }}>
             Balances
           </div>
 
@@ -127,37 +168,31 @@ export default function Nav({ module, onModule, lendingSheet, onLendingSheet, ti
         {/* Divider */}
         <div style={{ height: '1px', background: 'var(--border)', margin: '8px 14px' }} />
 
-        {/* Assets Section */}
+        {/* Settings Section */}
         <div style={{ paddingTop: 12, paddingBottom: 8 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '.04em', padding: '12px 14px 8px 14px', marginBottom: 4 }}>
-            Assets
-          </div>
-          {MODULES_LG.slice(2).map(m => (
-            <button
-              key={m.id}
-              onClick={() => { onModule(m.id); setDrawerOpen(false) }}
-              style={{
-                width: '100%',
-                textAlign: 'left',
-                padding: '12px 14px',
-                borderRadius: 0,
-                background: 'transparent',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                fontSize: 16,
-                fontWeight: 500,
-                transition: 'all .15s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-              }}
-            >
-              {m.icon}
-              <span>{m.label}</span>
-            </button>
-          ))}
+          <button
+            onClick={() => { onModule('settings'); setDrawerOpen(false) }}
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              padding: '12px 14px',
+              borderRadius: 0,
+              background: 'transparent',
+              color: '#fff',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: 16,
+              fontWeight: 500,
+              transition: 'all .15s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <Settings size={18} />
+            <span>Settings</span>
+          </button>
         </div>
       </div>
     </>

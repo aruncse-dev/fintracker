@@ -12,6 +12,7 @@ const S_HDR = ['ID', 'Date', 'Account', 'Amount', 'Description', 'Type', 'ToAcco
 const S_SHEET = 'Savings';
 
 // ── INTERNAL: ensure header row exists at row 1 ────────────────────────────────
+// STRICT: Never clears or truncates data. Only validates headers.
 function _ensureSavingsHeader(sh) {
   try {
     const lastRow = sh.getLastRow();
@@ -22,50 +23,24 @@ function _ensureSavingsHeader(sh) {
       Logger.log('_ensureSavingsHeader: sheet is empty, appending header');
       sh.appendRow(S_HDR);
       Logger.log('_ensureSavingsHeader: header appended');
-    } else {
-      // Sheet has data, check first row
+    } else if (lastRow >= 1) {
+      // Sheet has data - VALIDATE header only, NEVER clear or modify
       try {
         const firstRow = sh.getRange(1, 1, 1, S_HDR.length).getValues()[0];
         const isHeader = S_HDR.every((col, i) => String(firstRow[i] || '').trim() === col);
 
         if (!isHeader) {
-          Logger.log('_ensureSavingsHeader: header incorrect, rebuilding');
-          // Clear row 1 and set header values
-          sh.getRange(1, 1, 1, S_HDR.length).clearContent();
-          for (let i = 0; i < S_HDR.length; i++) {
-            sh.getRange(1, i + 1).setValue(S_HDR[i]);
-          }
-          Logger.log('_ensureSavingsHeader: header rebuilt');
+          Logger.log('_ensureSavingsHeader: header mismatch detected, but NOT modifying to preserve data');
+          Logger.log('_ensureSavingsHeader: first row content: ' + JSON.stringify(firstRow));
+          // Do NOT clear or modify - just log the issue
         } else {
           Logger.log('_ensureSavingsHeader: header is correct');
         }
       } catch(e) {
-        // If first row check fails, rebuild it
-        Logger.log('_ensureSavingsHeader: first row check failed, rebuilding header');
-        try {
-          sh.getRange(1, 1, 1, S_HDR.length).clearContent();
-        } catch(e2) {}
-        for (let i = 0; i < S_HDR.length; i++) {
-          sh.getRange(1, i + 1).setValue(S_HDR[i]);
-        }
+        Logger.log('_ensureSavingsHeader: first row check failed, but preserving all data: ' + e.message);
+        // Do NOT modify the sheet
       }
     }
-
-    // Apply minimal formatting (safer than full styling)
-    try {
-      const hdr = sh.getRange(1, 1, 1, S_HDR.length);
-      hdr.setFontWeight('bold').setBackground('#1E1B4B').setFontColor('#FFFFFF');
-      sh.setFrozenRows(1);
-      Logger.log('_ensureSavingsHeader: formatting applied');
-    } catch(e) {
-      Logger.log('_ensureSavingsHeader: formatting skipped (' + e.message + ')');
-    }
-
-    // Hide ID column (optional, non-critical)
-    try {
-      sh.setColumnWidth(1, 40);
-      sh.hideColumns(1);
-    } catch(e) {}
   } catch(e) {
     Logger.log('_ensureSavingsHeader ERROR: ' + e.message);
     throw e;
@@ -171,7 +146,10 @@ function _savings_addEntry(date, account, amount, desc, type, toAccount) {
     Logger.log('_savings_addEntry: sheet obtained');
     const id  = Utilities.getUuid();
     const amt = parseFloat(amount) || 0;
-    Logger.log('_savings_addEntry: appending row with id=' + id);
+
+    const rowCountBefore = sh.getLastRow();
+    Logger.log('_savings_addEntry: row count before append=' + rowCountBefore + ', appending with id=' + id);
+
     sh.appendRow([
       id,
       date || '',
@@ -181,12 +159,14 @@ function _savings_addEntry(date, account, amount, desc, type, toAccount) {
       String(type || '').toUpperCase(),
       String(toAccount || '').trim()
     ]);
-    Logger.log('_savings_addEntry: row appended, last row=' + sh.getLastRow());
 
-    const row = sh.getLastRow();
-    Logger.log('_savings_addEntry: styling row ' + row);
-    _savingsStyleRow(sh, row, String(type || ''));
-    Logger.log('_savings_addEntry: styling complete');
+    const rowCountAfter = sh.getLastRow();
+    Logger.log('_savings_addEntry: row count after append=' + rowCountAfter);
+
+    if (rowCountAfter !== rowCountBefore + 1) {
+      throw new Error('Data append verification failed: expected ' + (rowCountBefore + 1) + ' rows, got ' + rowCountAfter);
+    }
+
     Logger.log('_savings_addEntry: SUCCESS id=' + id);
     return id;
   } catch(e) {
@@ -201,35 +181,49 @@ function _savings_updateEntry(id, date, account, amount, desc, type, toAccount) 
     const sh   = _savingsSheet();
     Logger.log('_savings_updateEntry: sheet obtained');
     const vals = sh.getDataRange().getValues();
-    Logger.log('_savings_updateEntry: data read, rows=' + vals.length);
+    const rowCountBefore = sh.getLastRow();
+    Logger.log('_savings_updateEntry: data read, rows=' + vals.length + ', row count=' + rowCountBefore);
 
     const targetId = String(id).trim();
+    let targetRow = -1;
 
     for (let i = 1; i < vals.length; i++) {
       const rowId = String(vals[i][S_COL.ID] || "").trim();
       Logger.log('_savings_updateEntry: comparing rowId="' + rowId + '" with targetId="' + targetId + '"');
 
       if (rowId === targetId) {
-        Logger.log('_savings_updateEntry: found entry at row ' + (i + 1));
-        const amt = parseFloat(amount) || 0;
-        const rowNum = i + 1;
-        Logger.log('_savings_updateEntry: setting values for row ' + rowNum);
-        sh.getRange(rowNum, 1, 1, S_HDR.length).setValues([[
-          id,
-          date || '',
-          String(account || '').trim(),
-          amt,
-          String(desc || '').trim(),
-          String(type || '').toUpperCase(),
-          String(toAccount || '').trim()
-        ]]);
-        Logger.log('_savings_updateEntry: values set, styling row');
-        _savingsStyleRow(sh, rowNum, String(type || ''));
-        Logger.log('_savings_updateEntry: SUCCESS');
-        return true;
+        targetRow = i + 1;
+        Logger.log('_savings_updateEntry: found entry at row ' + targetRow);
+        break;
       }
     }
-    throw new Error('Savings entry not found: ' + id);
+
+    if (targetRow === -1) {
+      throw new Error('Savings entry not found: ' + id);
+    }
+
+    const amt = parseFloat(amount) || 0;
+    Logger.log('_savings_updateEntry: setting values for row ' + targetRow);
+
+    sh.getRange(targetRow, 1, 1, S_HDR.length).setValues([[
+      id,
+      date || '',
+      String(account || '').trim(),
+      amt,
+      String(desc || '').trim(),
+      String(type || '').toUpperCase(),
+      String(toAccount || '').trim()
+    ]]);
+
+    const rowCountAfter = sh.getLastRow();
+    Logger.log('_savings_updateEntry: row count before=' + rowCountBefore + ', after=' + rowCountAfter);
+
+    if (rowCountAfter !== rowCountBefore) {
+      throw new Error('Data update verification failed: row count changed from ' + rowCountBefore + ' to ' + rowCountAfter);
+    }
+
+    Logger.log('_savings_updateEntry: SUCCESS');
+    return true;
   } catch(e) {
     Logger.log('_savings_updateEntry ERROR: ' + e.message + ' | Stack: ' + e.stack);
     throw e;
@@ -241,37 +235,37 @@ function _savings_deleteEntry(id) {
     Logger.log('_savings_deleteEntry: id=' + id);
     const sh   = _savingsSheet();
     const vals = sh.getDataRange().getValues();
+    const rowCountBefore = sh.getLastRow();
+    Logger.log('_savings_deleteEntry: row count before delete=' + rowCountBefore);
+
+    let targetRow = -1;
+
+    // Find the target row (search backwards)
     for (let i = vals.length - 1; i >= 1; i--) {
       if (String(vals[i][S_COL.ID]) === String(id)) {
-        Logger.log('_savings_deleteEntry: found entry at row ' + (i + 1));
-        sh.deleteRow(i + 1);
-        Logger.log('_savings_deleteEntry: success');
-        return true;
+        targetRow = i + 1;
+        Logger.log('_savings_deleteEntry: found entry at row ' + targetRow);
+        break;
       }
     }
-    throw new Error('Savings entry not found: ' + id);
+
+    if (targetRow === -1) {
+      throw new Error('Savings entry not found: ' + id);
+    }
+
+    sh.deleteRow(targetRow);
+
+    const rowCountAfter = sh.getLastRow();
+    Logger.log('_savings_deleteEntry: row count after delete=' + rowCountAfter);
+
+    if (rowCountAfter !== rowCountBefore - 1) {
+      throw new Error('Data delete verification failed: expected ' + (rowCountBefore - 1) + ' rows, got ' + rowCountAfter);
+    }
+
+    Logger.log('_savings_deleteEntry: success');
+    return true;
   } catch(e) {
-    Logger.log('_savings_deleteEntry ERROR: ' + e.message);
+    Logger.log('_savings_deleteEntry ERROR: ' + e.message + ' | Stack: ' + e.stack);
     throw e;
   }
-}
-
-// ── FORMATTING ────────────────────────────────────────────────────────────────
-function _savingsStyleRow(sh, rowNum, type) {
-  const typeUpper = type.toUpperCase();
-  const isIncome = typeUpper === 'INCOME';
-  const isExpense = typeUpper === 'EXPENSE';
-
-  // Color map: Income=green, Expense=red, Transfer=blue
-  let bg = '#EFF6FF', fg = '#1D4ED8'; // Transfer (blue)
-  if (isIncome) {
-    bg = '#F0FDF4'; fg = '#166534'; // green
-  } else if (isExpense) {
-    bg = '#FEF2F2'; fg = '#991B1B'; // red
-  }
-
-  sh.getRange(rowNum, 2, 1, S_HDR.length - 1).setBackground(bg).setFontColor(fg);
-  sh.getRange(rowNum, S_COL.AMT + 1).setFontWeight('bold').setNumberFormat('₹#,##,##0.00').setHorizontalAlignment('right');
-  sh.getRange(rowNum, S_COL.DATE + 1).setNumberFormat('dd-mmm-yy').setHorizontalAlignment('center');
-  sh.getRange(rowNum, S_COL.TYPE + 1).setHorizontalAlignment('center');
 }

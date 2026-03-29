@@ -90,6 +90,28 @@ export interface RawSavingsRow {
   toAccount?: string;
 }
 
+export interface RawGoldRow {
+  id: string;
+  name: string;
+  weight_g: number | string;
+  pavan: number | string;
+  person: string;
+  location: string;
+}
+
+export interface RawGoldHistoryRow {
+  id: string;
+  date: string;
+  type: 'IN' | 'OUT';
+  name: string;
+  weight_g: number | string;
+  note?: string;
+}
+
+export interface GoldSettings {
+  goldRate: number;
+}
+
 export interface RawHolding {
   symbol: string;
   company: string;
@@ -120,6 +142,16 @@ export const api = {
   addSavings:    (p: Record<string, unknown>)  => post<string>({ module: 'savings', action: 'addEntry', ...p }),
   updateSavings: (p: Record<string, unknown>)  => post<boolean>({ module: 'savings', action: 'updateEntry', ...p }),
   deleteSavings: (id: string)                  => post<boolean>({ module: 'savings', action: 'deleteEntry', id }),
+  getGold:       ()                            => get<RawGoldRow[]>('getEntries', { module: 'gold' }),
+  addGold:       (p: Record<string, unknown>)  => post<string>({ module: 'gold', action: 'addEntry', ...p }),
+  updateGold:    (p: Record<string, unknown>)  => post<boolean>({ module: 'gold', action: 'updateEntry', ...p }),
+  deleteGold:    (id: string)                  => post<boolean>({ module: 'gold', action: 'deleteEntry', id }),
+  getGoldHistory:    ()                           => get<RawGoldHistoryRow[]>('getHistory', { module: 'gold' }),
+  addGoldHistory:    (p: Record<string, unknown>) => post<string>({ module: 'gold', action: 'addHistory', ...p }),
+  updateGoldHistory: (p: Record<string, unknown>) => post<{ success: boolean }>({ module: 'gold', action: 'updateHistory', ...p }),
+  deleteGoldHistory: (id: string)                 => post<{ success: boolean }>({ module: 'gold', action: 'deleteHistory', id }),
+  getSettings:   ()                            => get<GoldSettings>('get', { module: 'settings' }),
+  saveSettings:  (p: Record<string, unknown>) => post<boolean>({ module: 'settings', action: 'save', ...p }),
   getTokenStatus: ()                           => get<{ hasToken: boolean }>('getTokenStatus', { module: 'stocks' }),
   getUpstoxAuthUrl: ()                         => get<{ authUrl: string }>('getAuthUrl', { module: 'stocks' }),
   setUpstoxToken: (token: string)              => post<boolean>({ module: 'stocks', action: 'setToken', token }),

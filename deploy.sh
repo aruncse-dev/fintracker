@@ -19,8 +19,8 @@ clasp push --force
 
 echo "→ Creating deployment..."
 DEPLOY_OUTPUT=$(clasp deploy --description "Deploy $(date +'%Y-%m-%d %H:%M')" 2>&1)
-# Use sed instead of grep -P for macOS compatibility
-DEPLOYMENT_ID=$(echo "$DEPLOY_OUTPUT" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p' | head -1)
+# Extract deployment ID from "Deployed [ID] @[number]" format
+DEPLOYMENT_ID=$(echo "$DEPLOY_OUTPUT" | sed -n 's/.*Deployed \([^ ]*\) @.*/\1/p')
 
 if [ -z "$DEPLOYMENT_ID" ]; then
   echo "⚠ Failed to extract deployment ID"
@@ -99,7 +99,7 @@ else
   OLD_COUNT=$(echo "$DEPLOYMENTS" | grep -v "$DEPLOYMENT_ID" | wc -l)
   if [ "$OLD_COUNT" -gt 0 ]; then
     echo "Found $OLD_COUNT old deployment(s). Deleting..."
-    echo "$DEPLOYMENTS" | grep -v "$DEPLOYMENT_ID" | awk '{print $1}' | while read old_id; do
+    echo "$DEPLOYMENTS" | grep -v "$DEPLOYMENT_ID" | awk '{print $2}' | while read old_id; do
       if [ ! -z "$old_id" ]; then
         clasp undeploy "$old_id" 2>/dev/null && echo "✓ Deleted: $old_id" || echo "⚠ Failed to delete: $old_id"
       fi

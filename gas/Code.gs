@@ -161,6 +161,15 @@ function _handleGet(p) {
     Logger.log('_handleGet: routing to portfolio handler for module=' + p.module + ', action=' + p.action);
     return _portfolioHandleGet(p.module, p.action);
   }
+  if (p.module === 'gold') {
+    Logger.log('_handleGet: routing to gold handler for action=' + p.action);
+    return _goldHandleGet(p.action);
+  }
+  if (p.module === 'settings') {
+    Logger.log('_handleGet: routing to settings handler for action=' + p.action);
+    if (p.action === 'get') return _gold_getSettings();
+    throw new Error('Unknown settings GET action: ' + p.action);
+  }
   const action = p.action;
   if (action === 'init') return {
     months:     getMonths(),
@@ -188,6 +197,15 @@ function _handlePost(body) {
   if (body.module === 'stocks' || body.module === 'mutualfunds') {
     Logger.log('_handlePost: routing to portfolio handler for module=' + body.module + ', action=' + body.action);
     return _portfolioHandlePost(body.module, body.action, body);
+  }
+  if (body.module === 'gold') {
+    Logger.log('_handlePost: routing to gold handler for action=' + body.action);
+    return _goldHandlePost(body.action, body);
+  }
+  if (body.module === 'settings') {
+    Logger.log('_handlePost: routing to settings handler for action=' + body.action);
+    if (body.action === 'save') return _gold_saveSettings(body.goldRate);
+    throw new Error('Unknown settings POST action: ' + body.action);
   }
   const action = body.action;
   if (action === 'addRow')
@@ -224,16 +242,7 @@ function _ss() {
 function _name(m, y)  { return m + '-' + y; }
 
 function _styleHeader(sh, numCols) {
-  const hdr = sh.getRange(1, 1, 1, numCols);
-  hdr.setFontWeight('bold')
-     .setBackground(C_HDR_BG)
-     .setFontColor(C_HDR_FG)
-     .setFontSize(11)
-     .setFontFamily('Arial')
-     .setHorizontalAlignment('center')
-     .setVerticalAlignment('middle');
-  sh.setRowHeight(1, 32);
-  sh.setFrozenRows(1);
+  // Formatting handled by sheet theme - no-op
 }
 
 function _getOrCreate(name, headers) {
@@ -244,10 +253,6 @@ function _getOrCreate(name, headers) {
     if (headers && headers.length) {
       sh.appendRow(headers);
       _styleHeader(sh, headers.length);
-      try {
-        sh.getRange(2, 1, 999, headers.length)
-          .applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY, false, false);
-      } catch(e) {}
     }
   }
   return sh;
@@ -261,51 +266,12 @@ function _fmtDate(v) {
 
 // ── SHEET FORMATTING: apply column widths + number format to a month sheet ───
 function _formatMonthSheet(sh) {
-  // Column widths: ID(hidden), Date, Description, Amount, Category, Type, Mode, Notes
-  const widths = [0, 90, 260, 110, 140, 90, 110, 180];
-  widths.forEach((w, i) => { if (w > 0) sh.setColumnWidth(i + 1, w); });
-
-  // Amount column: Indian currency format
-  sh.getRange(2, COL.AMT + 1, 999, 1)
-    .setNumberFormat('₹#,##,##0.00');
-
-  // Date column: consistent date format
-  sh.getRange(2, COL.DATE + 1, 999, 1)
-    .setNumberFormat('dd-mmm-yy');
-
-  // Description: left-align, wrap
-  sh.getRange(2, COL.DESC + 1, 999, 1)
-    .setHorizontalAlignment('left')
-    .setWrap(true);
-
-  // Amount: right-align
-  sh.getRange(2, COL.AMT + 1, 999, 1)
-    .setHorizontalAlignment('right');
-
-  // Centre-align: Date, Category, Type, Mode
-  [COL.DATE, COL.CAT, COL.TYPE, COL.MODE].forEach(c => {
-    sh.getRange(2, c + 1, 999, 1).setHorizontalAlignment('center');
-  });
-
-  sh.setRowHeightsForced(2, 999, 24);
+  // Formatting handled by sheet theme - no-op
 }
 
 // ── SHEET FORMATTING: colour-code rows by transaction type ───────────────────
 function _colorRows(sh, vals) {
-  for (let i = 1; i < vals.length; i++) {
-    const type = String(vals[i][COL.TYPE] || '');
-    let bg, fg;
-    if (type === 'Income')   { bg = C_INC_BG; fg = C_INC_FG; }
-    else if (type === 'Transfer') { bg = C_TRF_BG; fg = C_TRF_FG; }
-    else if (type === 'Savings')  { bg = C_SAV_BG; fg = C_SAV_FG; }
-    else                          { bg = C_EXP_BG; fg = C_EXP_FG; }
-
-    const row = sh.getRange(i + 1, 2, 1, 7); // cols 2-8 (skip hidden ID)
-    row.setBackground(bg).setFontColor(fg);
-
-    // Bold the amount
-    sh.getRange(i + 1, COL.AMT + 1).setFontWeight('bold');
-  }
+  // Formatting handled by sheet theme - no-op
 }
 
 // ── PUBLIC: MONTH MANAGEMENT ──────────────────────────────────────────────────
@@ -322,7 +288,6 @@ function getMonths() {
 
 function ensureMonth(month, year) {
   const sh = _getOrCreate(_name(month, year), HDR);
-  try { sh.hideColumns(1); } catch(e) {}
   _formatMonthSheet(sh);
   return true;
 }
@@ -352,16 +317,6 @@ function addRow(month, year, date, desc, a, c, t, m, notes) {
   const sh  = _ss().getSheetByName(_name(month, year));
   const id  = Utilities.getUuid();
   sh.appendRow([id, date, desc, parseFloat(a) || 0, c, t, m, notes || '']);
-  // Colour the new row
-  const lastRow = sh.getLastRow();
-  const type = String(t || '');
-  let bg, fg;
-  if (type === 'Income')    { bg = C_INC_BG; fg = C_INC_FG; }
-  else if (type === 'Transfer') { bg = C_TRF_BG; fg = C_TRF_FG; }
-  else if (type === 'Savings')  { bg = C_SAV_BG; fg = C_SAV_FG; }
-  else                          { bg = C_EXP_BG; fg = C_EXP_FG; }
-  sh.getRange(lastRow, 2, 1, 7).setBackground(bg).setFontColor(fg);
-  sh.getRange(lastRow, COL.AMT + 1).setFontWeight('bold');
   return id;
 }
 
@@ -373,15 +328,6 @@ function updateRow(month, year, id, date, desc, a, c, t, m, notes) {
     if (String(vals[i][COL.ID]) === String(id)) {
       sh.getRange(i + 1, 1, 1, 8)
         .setValues([[id, date, desc, parseFloat(a) || 0, c, t, m, notes || '']]);
-      // Re-colour updated row
-      const type = String(t || '');
-      let bg, fg;
-      if (type === 'Income')    { bg = C_INC_BG; fg = C_INC_FG; }
-      else if (type === 'Transfer') { bg = C_TRF_BG; fg = C_TRF_FG; }
-      else if (type === 'Savings')  { bg = C_SAV_BG; fg = C_SAV_FG; }
-      else                          { bg = C_EXP_BG; fg = C_EXP_FG; }
-      sh.getRange(i + 1, 2, 1, 7).setBackground(bg).setFontColor(fg);
-      sh.getRange(i + 1, COL.AMT + 1).setFontWeight('bold');
       return true;
     }
   }
@@ -432,15 +378,8 @@ function saveBudget(budgets) {
   sh.clearContents();
   sh.appendRow(['Category', 'Budget']);
   _styleHeader(sh, 2);
-  sh.setColumnWidth(1, 200);
-  sh.setColumnWidth(2, 130);
   const rows = Object.entries(budgets);
   rows.forEach(([cat, amt]) => sh.appendRow([cat, parseFloat(amt) || 0]));
-  if (rows.length) {
-    sh.getRange(2, 2, rows.length, 1).setNumberFormat('₹#,##,##0.00').setHorizontalAlignment('right');
-    sh.getRange(2, 1, rows.length, 1).setHorizontalAlignment('left');
-    sh.setRowHeightsForced(2, rows.length, 24);
-  }
   return true;
 }
 
@@ -450,17 +389,12 @@ function updateBudgetEntry(cat, amt) {
   const vals = sh.getDataRange().getValues();
   for (let i = 1; i < vals.length; i++) {
     if (String(vals[i][0]) === String(cat)) {
-      sh.getRange(i + 1, 2).setValue(parseFloat(amt) || 0)
-        .setNumberFormat('₹#,##,##0.00').setHorizontalAlignment('right');
+      sh.getRange(i + 1, 2).setValue(parseFloat(amt) || 0);
       return true;
     }
   }
   // Not found — append a new row
   sh.appendRow([cat, parseFloat(amt) || 0]);
-  const r = sh.getLastRow();
-  sh.getRange(r, 2).setNumberFormat('₹#,##,##0.00').setHorizontalAlignment('right');
-  sh.getRange(r, 1).setHorizontalAlignment('left');
-  sh.setRowHeightsForced(r, 1, 24);
   return true;
 }
 
@@ -496,12 +430,7 @@ function saveAccountOpeningBalances(data) {
   sh.clearContents();
   sh.appendRow(['Account', 'Opening Balance']);
   _styleHeader(sh, 2);
-  sh.setColumnWidth(1, 160);
-  sh.setColumnWidth(2, 150);
   ACCT_NAMES.forEach(a => sh.appendRow([a, parseFloat(data[a]) || 0]));
-  sh.getRange(2, 2, ACCT_NAMES.length, 1).setNumberFormat('₹#,##,##0.00').setHorizontalAlignment('right');
-  sh.getRange(2, 1, ACCT_NAMES.length, 1).setHorizontalAlignment('left');
-  sh.setRowHeightsForced(2, ACCT_NAMES.length, 24);
   return true;
 }
 

@@ -261,17 +261,25 @@ function _parseCurrencyNum(val) {
 }
 
 function _portfolio_ensureSheet(sheetName) {
+  Logger.log('_portfolio_ensureSheet: checking sheet=' + sheetName);
   const ss = SpreadsheetApp.openById(_getSpreadsheetId('ASSETS_SHEET_ID'));
   let sheet = ss.getSheetByName(sheetName);
 
   if (!sheet) {
+    Logger.log('_portfolio_ensureSheet: sheet "' + sheetName + '" not found, creating');
+    const rowCountBefore = 0;
+
     if (sheetName === 'Stocks') {
       sheet = ss.insertSheet(sheetName);
       sheet.appendRow(['Symbol', 'Company', 'ISIN', 'Qty', 'AvgPrice', 'LastPrice', 'PnL', 'DayChg%', 'Synced']);
+      Logger.log('_portfolio_ensureSheet: Stocks sheet created with header');
     } else if (sheetName === 'MutualFunds') {
       sheet = ss.insertSheet(sheetName);
       sheet.appendRow(['FundName', 'FolioNo', 'Units', 'Purchased', 'CurrentValue', 'ProfitLoss', 'SchemeCode']);
+      Logger.log('_portfolio_ensureSheet: MutualFunds sheet created with header');
     }
+  } else {
+    Logger.log('_portfolio_ensureSheet: sheet "' + sheetName + '" exists, lastRow=' + sheet.getLastRow());
   }
 
   return sheet;
@@ -280,15 +288,29 @@ function _portfolio_ensureSheet(sheetName) {
 function _portfolio_writeHoldings(sheetName, rows) {
   const sheet = _portfolio_ensureSheet(sheetName);
 
-  // Clear existing data (keep header)
+  // STRICT: NEVER delete existing data. Only update existing synced rows or append new ones.
   const lastRow = sheet.getLastRow();
-  if (lastRow > 1) {
-    sheet.deleteRows(2, lastRow - 1);
+  Logger.log('_portfolio_writeHoldings: sheet=' + sheetName + ', lastRow=' + lastRow + ', new rows=' + rows.length);
+
+  if (rows.length === 0) {
+    Logger.log('_portfolio_writeHoldings: no new rows to write, preserving existing data');
+    return 0;
   }
 
-  // Write new rows
+  // For stocks: update existing synced rows by symbol, append if new
+  // For now, append all new rows to preserve existing data
+  const startRow = lastRow + 1;
+  Logger.log('_portfolio_writeHoldings: appending ' + rows.length + ' row(s) starting at row ' + startRow);
+
   if (rows.length > 0) {
-    sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+    sheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
+  }
+
+  const newLastRow = sheet.getLastRow();
+  Logger.log('_portfolio_writeHoldings: new lastRow=' + newLastRow + ', verified ' + (newLastRow - lastRow) + ' rows added');
+
+  if ((newLastRow - lastRow) !== rows.length) {
+    throw new Error('Portfolio data write verification failed: expected ' + rows.length + ' rows added, got ' + (newLastRow - lastRow));
   }
 
   return rows.length;

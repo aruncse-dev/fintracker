@@ -9,6 +9,7 @@ import Savings from './pages/Savings'
 import Gold from './pages/Gold'
 import Stocks from './pages/Stocks'
 import MutualFunds from './pages/MutualFunds'
+import Settings from './pages/Settings'
 import { ALLOWED_EMAILS } from './constants'
 
 function InstallBanner() {
@@ -49,6 +50,7 @@ function Inner() {
     if (module === 'gold') return 'Gold'
     if (module === 'stocks') return 'Stocks'
     if (module === 'mutualfunds') return 'Mutual Funds'
+    if (module === 'settings') return 'Settings'
     return 'FinTracker'
   }
 
@@ -58,9 +60,10 @@ function Inner() {
       {module === 'monthly'     && <Monthly />}
       {module === 'lending'     && <Lending key={lendingSheet} sheetName={lendingSheet} />}
       {module === 'savings'     && <Savings />}
-      {module === 'gold'        && <Gold />}
+      {module === 'gold'        && <Gold onOpenSettings={() => setModule('settings')} />}
       {module === 'stocks'      && <Stocks />}
       {module === 'mutualfunds' && <MutualFunds />}
+      {module === 'settings'    && <Settings />}
       <InstallBanner />
     </div>
   )
