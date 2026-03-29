@@ -14,6 +14,15 @@ const JLH_COL = { ID: 0, LOAN_ID: 1, DATE: 2, AMOUNT: 3, NOTE: 4 };
 const JLH_HDR = ['ID', 'LoanId', 'Date', 'Amount', 'Note'];
 const JLH_SHEET = 'Jewel Loan Repayment';
 
+// Cash Loans Module
+const CL_COL = { ID: 0, PERSON_NAME: 1, AMOUNT_RECEIVED: 2, START_DATE: 3, PAID_AMOUNT: 4 };
+const CL_HDR = ['ID', 'PersonName', 'AmountReceived', 'StartDate', 'PaidAmount'];
+const CL_SHEET = 'Cash Loan';
+
+const CLH_COL = { ID: 0, LOAN_ID: 1, DATE: 2, AMOUNT: 3, NOTE: 4 };
+const CLH_HDR = ['ID', 'LoanId', 'Date', 'Amount', 'Note'];
+const CLH_SHEET = 'Cash Loan Repayment';
+
 // Get the loans spreadsheet ID from properties
 function _getLoansSpreadsheetId() {
   const id = PropertiesService.getScriptProperties().getProperty('LOANS_SPREADSHEET_ID');
@@ -105,6 +114,56 @@ function _ensureJewelLoansHistoryHeader(sh) {
   const hdr = sh.getRange(1, 1, 1, JLH_HDR.length).getValues()[0];
   if (hdr.join('|') !== JLH_HDR.join('|')) {
     Logger.log('WARNING: Jewel Loans History sheet header mismatch. Expected: ' + JLH_HDR.join(',') + ', Got: ' + hdr.join(','));
+  }
+}
+
+// Get the Cash Loans sheet with header validation
+function _cashLoansSheet() {
+  const ssId = _getLoansSpreadsheetId();
+  const ss = SpreadsheetApp.openById(ssId);
+  let sh = ss.getSheetByName(CL_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(CL_SHEET);
+    sh.appendRow(CL_HDR);
+  }
+  _ensureCashLoansHeader(sh);
+  return sh;
+}
+
+// Ensure Cash Loans header row exists and matches
+function _ensureCashLoansHeader(sh) {
+  if (sh.getLastRow() === 0) {
+    sh.appendRow(CL_HDR);
+    return;
+  }
+  const hdr = sh.getRange(1, 1, 1, CL_HDR.length).getValues()[0];
+  if (hdr.join('|') !== CL_HDR.join('|')) {
+    Logger.log('WARNING: Cash Loans sheet header mismatch. Expected: ' + CL_HDR.join(',') + ', Got: ' + hdr.join(','));
+  }
+}
+
+// Get the Cash Loans History sheet with header validation
+function _cashLoansHistorySheet() {
+  const ssId = _getLoansSpreadsheetId();
+  const ss = SpreadsheetApp.openById(ssId);
+  let sh = ss.getSheetByName(CLH_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(CLH_SHEET);
+    sh.appendRow(CLH_HDR);
+  }
+  _ensureCashLoansHistoryHeader(sh);
+  return sh;
+}
+
+// Ensure Cash Loans History header row exists and matches
+function _ensureCashLoansHistoryHeader(sh) {
+  if (sh.getLastRow() === 0) {
+    sh.appendRow(CLH_HDR);
+    return;
+  }
+  const hdr = sh.getRange(1, 1, 1, CLH_HDR.length).getValues()[0];
+  if (hdr.join('|') !== CLH_HDR.join('|')) {
+    Logger.log('WARNING: Cash Loans History sheet header mismatch. Expected: ' + CLH_HDR.join(',') + ', Got: ' + hdr.join(','));
   }
 }
 
@@ -348,15 +407,197 @@ function _jl_deleteHistory(body) {
   throw new Error('Jewel Loan history not found: ' + id);
 }
 
+// ─── CASH LOANS CRUD ────────────────────────────────────────────────────────────
+
+// Get all Cash Loan entries
+function _cl_getEntries() {
+  const sh = _cashLoansSheet();
+  const vals = sh.getDataRange().getValues();
+  if (vals.length <= 1) return [];
+
+  return vals.slice(1).map(row => ({
+    id: String(row[CL_COL.ID] || ''),
+    person_name: String(row[CL_COL.PERSON_NAME] || ''),
+    amount_received: Number(row[CL_COL.AMOUNT_RECEIVED]) || 0,
+    start_date: _fmtDate(row[CL_COL.START_DATE]),
+    paid_amount: Number(row[CL_COL.PAID_AMOUNT]) || 0,
+  }));
+}
+
+// Add a new Cash Loan entry
+function _cl_addEntry(body) {
+  const sh = _cashLoansSheet();
+  const id = Utilities.getUuid();
+  const countBefore = sh.getLastRow();
+
+  sh.appendRow([
+    id,
+    String(body.person_name || ''),
+    Number(body.amount_received) || 0,
+    body.start_date || '',
+    0, // paid_amount defaults to 0
+  ]);
+
+  const countAfter = sh.getLastRow();
+  if (countAfter !== countBefore + 1) {
+    throw new Error('Failed to add Cash Loan entry: row count mismatch');
+  }
+
+  return id;
+}
+
+// Update an existing Cash Loan entry
+function _cl_updateEntry(body) {
+  const sh = _cashLoansSheet();
+  const vals = sh.getDataRange().getValues();
+  const id = String(body.id).trim();
+
+  for (let i = 1; i < vals.length; i++) {
+    if (String(vals[i][CL_COL.ID]).trim() === id) {
+      const targetRow = i + 1;
+      sh.getRange(targetRow, 1, 1, CL_HDR.length).setValues([[
+        id,
+        String(body.person_name || vals[i][CL_COL.PERSON_NAME]),
+        Number(body.amount_received !== undefined ? body.amount_received : vals[i][CL_COL.AMOUNT_RECEIVED]),
+        body.start_date || vals[i][CL_COL.START_DATE],
+        Number(body.paid_amount !== undefined ? body.paid_amount : vals[i][CL_COL.PAID_AMOUNT]),
+      ]]);
+      return true;
+    }
+  }
+
+  throw new Error('Cash Loan not found: ' + id);
+}
+
+// Delete a Cash Loan entry
+function _cl_deleteEntry(body) {
+  const sh = _cashLoansSheet();
+  const vals = sh.getDataRange().getValues();
+  const id = String(body.id).trim();
+  const countBefore = vals.length - 1;
+
+  for (let i = vals.length - 1; i >= 1; i--) {
+    if (String(vals[i][CL_COL.ID]).trim() === id) {
+      sh.deleteRow(i + 1);
+      const countAfter = sh.getLastRow() - 1;
+      if (countAfter !== countBefore - 1) {
+        throw new Error('Failed to delete Cash Loan entry: row count mismatch');
+      }
+      return true;
+    }
+  }
+
+  throw new Error('Cash Loan not found: ' + id);
+}
+
+// ─── CASH LOANS HISTORY CRUD ───────────────────────────────────────────────────────
+
+// Get all Cash Loan history entries
+function _cl_getHistory(p) {
+  const sh = _cashLoansHistorySheet();
+  const vals = sh.getDataRange().getValues();
+  if (vals.length <= 1) return [];
+
+  let entries = vals.slice(1).map(row => ({
+    id: String(row[CLH_COL.ID] || ''),
+    loan_id: String(row[CLH_COL.LOAN_ID] || ''),
+    date: _fmtDate(row[CLH_COL.DATE]),
+    amount: Number(row[CLH_COL.AMOUNT]) || 0,
+    note: String(row[CLH_COL.NOTE] || ''),
+  }));
+
+  if (p && p.loan_id) {
+    entries = entries.filter(e => e.loan_id === String(p.loan_id));
+  }
+
+  return entries;
+}
+
+// Helper: Recalculate paid_amount for a cash loan based on history entries
+function _cl_recalcPaidAmount(loanId) {
+  const histSh = _cashLoansHistorySheet();
+  const histVals = histSh.getDataRange().getValues();
+  let totalPaid = 0;
+
+  for (let i = 1; i < histVals.length; i++) {
+    if (String(histVals[i][CLH_COL.LOAN_ID]).trim() === loanId) {
+      totalPaid += Number(histVals[i][CLH_COL.AMOUNT]) || 0;
+    }
+  }
+
+  const mainSh = _cashLoansSheet();
+  const mainVals = mainSh.getDataRange().getValues();
+
+  for (let i = 1; i < mainVals.length; i++) {
+    if (String(mainVals[i][CL_COL.ID]).trim() === loanId) {
+      mainSh.getRange(i + 1, CL_COL.PAID_AMOUNT + 1).setValue(totalPaid);
+      return totalPaid;
+    }
+  }
+
+  throw new Error('Cash Loan not found for paid_amount recalc: ' + loanId);
+}
+
+// Add a new Cash Loan history entry and update paid_amount
+function _cl_addHistory(body) {
+  const histSh = _cashLoansHistorySheet();
+  const id = Utilities.getUuid();
+  const countBefore = histSh.getLastRow();
+
+  histSh.appendRow([
+    id,
+    String(body.loan_id || ''),
+    body.date || '',
+    Number(body.amount) || 0,
+    String(body.note || ''),
+  ]);
+
+  const countAfter = histSh.getLastRow();
+  if (countAfter !== countBefore + 1) {
+    throw new Error('Failed to add Cash Loan history: row count mismatch');
+  }
+
+  _cl_recalcPaidAmount(String(body.loan_id));
+
+  return id;
+}
+
+// Delete a Cash Loan history entry and recalculate paid_amount
+function _cl_deleteHistory(body) {
+  const sh = _cashLoansHistorySheet();
+  const vals = sh.getDataRange().getValues();
+  const id = String(body.id).trim();
+  const countBefore = vals.length - 1;
+  let loanId = '';
+
+  for (let i = vals.length - 1; i >= 1; i--) {
+    if (String(vals[i][CLH_COL.ID]).trim() === id) {
+      loanId = String(vals[i][CLH_COL.LOAN_ID]);
+      sh.deleteRow(i + 1);
+      const countAfter = sh.getLastRow() - 1;
+      if (countAfter !== countBefore - 1) {
+        throw new Error('Failed to delete Cash Loan history: row count mismatch');
+      }
+
+      _cl_recalcPaidAmount(loanId);
+      return true;
+    }
+  }
+
+  throw new Error('Cash Loan history not found: ' + id);
+}
+
 // GET handler router
 function _loansHandleGet(action, p) {
   try {
     if (action === 'getEntries') {
       if (p && p.type === 'jewel') return _jl_getEntries();
+      if (p && p.type === 'cash') return _cl_getEntries();
       return _loans_getEntries();
     }
     if (action === 'getHistory') {
       if (p && p.type === 'jewel') return _jl_getHistory(p);
+      if (p && p.type === 'cash') return _cl_getHistory(p);
       throw new Error('Unknown loans GET action for history');
     }
     throw new Error('Unknown loans GET action: ' + action);
@@ -371,18 +612,22 @@ function _loansHandlePost(action, body) {
   try {
     if (action === 'addEntry') {
       if (body.type === 'jewel') return _jl_addEntry(body);
+      if (body.type === 'cash') return _cl_addEntry(body);
       return _loans_addEntry(body);
     }
     if (action === 'updateEntry') {
       if (body.type === 'jewel') return _jl_updateEntry(body);
+      if (body.type === 'cash') return _cl_updateEntry(body);
       return _loans_updateEntry(body);
     }
     if (action === 'deleteEntry') {
       if (body.type === 'jewel') return _jl_deleteEntry(body);
+      if (body.type === 'cash') return _cl_deleteEntry(body);
       return _loans_deleteEntry(body);
     }
     if (action === 'addHistory') {
       if (body.type === 'jewel') return _jl_addHistory(body);
+      if (body.type === 'cash') return _cl_addHistory(body);
       throw new Error('Unknown loans POST action for addHistory');
     }
     if (action === 'updateHistory') {
@@ -391,6 +636,7 @@ function _loansHandlePost(action, body) {
     }
     if (action === 'deleteHistory') {
       if (body.type === 'jewel') return _jl_deleteHistory(body);
+      if (body.type === 'cash') return _cl_deleteHistory(body);
       throw new Error('Unknown loans POST action for deleteHistory');
     }
     throw new Error('Unknown loans POST action: ' + action);

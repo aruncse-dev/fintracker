@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { CalendarDays, PiggyBank, Gem, TrendingUp, BarChart2, Wallet, User, Settings, CreditCard, Landmark } from 'lucide-react'
+import { CalendarDays, PiggyBank, Gem, TrendingUp, BarChart2, Wallet, User, Settings, CreditCard, Landmark, Banknote } from 'lucide-react'
 import React from 'react'
 
-export type ModuleId = 'monthly' | 'lending' | 'savings' | 'gold' | 'stocks' | 'mutualfunds' | 'emi' | 'jewelLoans' | 'settings'
+export type ModuleId = 'monthly' | 'lending' | 'savings' | 'gold' | 'stocks' | 'mutualfunds' | 'emi' | 'jewelLoans' | 'cashLoans' | 'settings'
 
 interface Props {
   module: ModuleId
@@ -209,6 +209,29 @@ export default function Nav({ module, onModule, lendingSheet, onLendingSheet, ti
           >
             <Landmark size={18} />
             <span>Jewel Loans</span>
+          </button>
+          <button
+            onClick={() => { onModule('cashLoans'); setDrawerOpen(false) }}
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              padding: '12px 14px',
+              borderRadius: 0,
+              background: module === 'cashLoans' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+              color: '#fff',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: 16,
+              fontWeight: module === 'cashLoans' ? 500 : 400,
+              transition: 'all .15s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <Banknote size={18} />
+            <span>Cash Loans</span>
           </button>
         </div>
 

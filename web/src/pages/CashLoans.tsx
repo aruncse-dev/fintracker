@@ -1,25 +1,21 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Plus, Check, Trash2, Loader2, BarChart3, CreditCard, LayoutDashboard, Clock } from 'lucide-react';
-import { api, RawJewelLoanRow, RawJewelLoanHistoryRow } from '../api';
+import { api, RawCashLoanRow, RawCashLoanHistoryRow } from '../api';
 import { INR } from '../utils';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // TYPES & CONSTANTS
 // ──────────────────────────────────────────────────────────────────────────────
 
-interface JewelLoan {
+interface CashLoan {
   id: string;
-  name: string;
-  bank: string;
-  principal: number;
-  rate: number;
+  person_name: string;
+  amount_received: number;
   start_date: string;
-  end_date: string;
   paid_amount: number;
-  status: string;
 }
 
-interface JewelLoanPayment {
+interface CashLoanPayment {
   id: string;
   loan_id: string;
   date: string;
@@ -28,12 +24,9 @@ interface JewelLoanPayment {
 }
 
 interface LoanFormState {
-  name: string;
-  bank: string;
-  principal: string;
-  rate: string;
+  person_name: string;
+  amount_received: string;
   start_date: string;
-  end_date: string;
 }
 
 interface PaymentFormState {
@@ -44,12 +37,9 @@ interface PaymentFormState {
 
 function emptyLoanForm(): LoanFormState {
   return {
-    name: '',
-    bank: '',
-    principal: '',
-    rate: '',
+    person_name: '',
+    amount_received: '',
     start_date: new Date().toISOString().split('T')[0],
-    end_date: new Date().toISOString().split('T')[0],
   };
 }
 
@@ -61,27 +51,22 @@ function emptyPaymentForm(): PaymentFormState {
   };
 }
 
-function parseRow(raw: RawJewelLoanRow): JewelLoan | null {
-  const principal = parseFloat(String(raw.principal));
-  const rate = parseFloat(String(raw.rate));
+function parseRow(raw: RawCashLoanRow): CashLoan | null {
+  const amount_received = parseFloat(String(raw.amount_received));
   const paid_amount = parseFloat(String(raw.paid_amount));
 
-  if (isNaN(principal) || isNaN(paid_amount)) return null;
+  if (isNaN(amount_received) || isNaN(paid_amount)) return null;
 
   return {
     id: raw.id,
-    name: String(raw.name ?? '').trim(),
-    bank: String(raw.bank ?? '').trim(),
-    principal,
-    rate: isNaN(rate) ? 0 : rate,
+    person_name: String(raw.person_name ?? '').trim(),
+    amount_received,
     start_date: String(raw.start_date ?? ''),
-    end_date: String(raw.end_date ?? ''),
     paid_amount,
-    status: String(raw.status ?? 'Ongoing').trim(),
   };
 }
 
-function parsePaymentRow(raw: RawJewelLoanHistoryRow): JewelLoanPayment | null {
+function parsePaymentRow(raw: RawCashLoanHistoryRow): CashLoanPayment | null {
   const amount = parseFloat(String(raw.amount));
   if (isNaN(amount)) return null;
 
@@ -139,19 +124,19 @@ function fmtDate(dateStr: string): string {
 // MAIN COMPONENT
 // ──────────────────────────────────────────────────────────────────────────────
 
-export default function JewelLoans() {
+export default function CashLoans() {
   // Tabs
   const [activeTab, setActiveTab] = useState<'dashboard' | 'history'>('dashboard');
 
   // Data
-  const [loans, setLoans] = useState<JewelLoan[]>([]);
-  const [payments, setPayments] = useState<JewelLoanPayment[]>([]);
+  const [loans, setLoans] = useState<CashLoan[]>([]);
+  const [payments, setPayments] = useState<CashLoanPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   // Loan Modal
   const [loanModalOpen, setLoanModalOpen] = useState(false);
-  const [editLoan, setEditLoan] = useState<JewelLoan | null>(null);
+  const [editLoan, setEditLoan] = useState<CashLoan | null>(null);
   const [loanForm, setLoanForm] = useState<LoanFormState>(emptyLoanForm());
   const [saving, setSaving] = useState(false);
   const [delConfirm, setDelConfirm] = useState(false);
@@ -169,10 +154,8 @@ export default function JewelLoans() {
   const [delPaymentModal, setDelPaymentModal] = useState(false);
 
   // Derivations
-  const ongoingLoans = useMemo(() => loans.filter(l => l.status === 'Ongoing'), [loans]);
-
-  const totalPrincipal = useMemo(() => {
-    return loans.reduce((s, l) => s + l.principal, 0);
+  const totalReceived = useMemo(() => {
+    return loans.reduce((s, l) => s + l.amount_received, 0);
   }, [loans]);
 
   const totalPaid = useMemo(() => {
@@ -180,12 +163,8 @@ export default function JewelLoans() {
   }, [loans]);
 
   const totalOutstanding = useMemo(() => {
-    return ongoingLoans.reduce((s, l) => {
-      const interest = l.principal * (l.rate / 100);
-      const total_payable = l.principal + interest;
-      return s + (total_payable - l.paid_amount);
-    }, 0);
-  }, [ongoingLoans]);
+    return loans.reduce((s, l) => s + (l.amount_received - l.paid_amount), 0);
+  }, [loans]);
 
   // Load data
   const loadData = useCallback(async () => {
@@ -193,11 +172,11 @@ export default function JewelLoans() {
     setError('');
     try {
       const [loansData, paymentsData] = await Promise.all([
-        api.getJewelLoans(),
-        api.getJewelLoanHistory(),
+        api.getCashLoans(),
+        api.getCashLoanHistory(),
       ]);
-      setLoans(loansData.map(parseRow).filter((i): i is JewelLoan => i !== null));
-      setPayments(paymentsData.map(parsePaymentRow).filter((i): i is JewelLoanPayment => i !== null));
+      setLoans(loansData.map(parseRow).filter((i): i is CashLoan => i !== null));
+      setPayments(paymentsData.map(parsePaymentRow).filter((i): i is CashLoanPayment => i !== null));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load loans');
     } finally {
@@ -222,25 +201,17 @@ export default function JewelLoans() {
     setLoanModalOpen(true);
   }
 
-  function openEditLoan(loan: JewelLoan) {
+  function openEditLoan(loan: CashLoan) {
     setEditLoan(loan);
     const parsed = parseDate(loan.start_date);
     const formattedStartDate = !isNaN(parsed.getTime())
       ? `${String(parsed.getFullYear()).padStart(4, '0')}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`
       : '';
 
-    const endParsed = parseDate(loan.end_date);
-    const formattedEndDate = !isNaN(endParsed.getTime())
-      ? `${String(endParsed.getFullYear()).padStart(4, '0')}-${String(endParsed.getMonth() + 1).padStart(2, '0')}-${String(endParsed.getDate()).padStart(2, '0')}`
-      : '';
-
     setLoanForm({
-      name: loan.name,
-      bank: loan.bank,
-      principal: String(loan.principal),
-      rate: String(loan.rate),
+      person_name: loan.person_name,
+      amount_received: String(loan.amount_received),
       start_date: formattedStartDate,
-      end_date: formattedEndDate,
     });
     setDelConfirm(false);
     setError('');
@@ -248,24 +219,20 @@ export default function JewelLoans() {
   }
 
   async function saveLoan() {
-    if (!loanForm.name.trim() || !loanForm.bank.trim() || !loanForm.principal) return;
+    if (!loanForm.person_name.trim() || !loanForm.amount_received) return;
 
     setSaving(true);
     const payload = {
-      name: loanForm.name.trim(),
-      bank: loanForm.bank.trim(),
-      principal: parseFloat(loanForm.principal),
-      rate: parseFloat(loanForm.rate) || 0,
+      person_name: loanForm.person_name.trim(),
+      amount_received: parseFloat(loanForm.amount_received),
       start_date: loanForm.start_date,
-      end_date: loanForm.end_date,
-      status: 'Ongoing',
     };
 
     try {
       if (editLoan) {
-        await api.updateJewelLoan({ ...payload, id: editLoan.id });
+        await api.updateCashLoan({ ...payload, id: editLoan.id });
       } else {
-        await api.addJewelLoan(payload);
+        await api.addCashLoan(payload);
       }
       setLoanModalOpen(false);
       setEditLoan(null);
@@ -288,7 +255,7 @@ export default function JewelLoans() {
 
     setSaving(true);
     try {
-      await api.deleteJewelLoan(editLoan.id);
+      await api.deleteCashLoan(editLoan.id);
       setLoanModalOpen(false);
       await loadData();
     } catch (e) {
@@ -315,7 +282,7 @@ export default function JewelLoans() {
     };
 
     try {
-      await api.addJewelLoanHistory(payload);
+      await api.addCashLoanHistory(payload);
       setPayModalOpen(false);
       setPayLoanId('');
       setPayForm(emptyPaymentForm());
@@ -338,7 +305,7 @@ export default function JewelLoans() {
 
     setDelPaymentConfirm(true);
     try {
-      await api.deleteJewelLoanHistory(delPaymentId);
+      await api.deleteCashLoanHistory(delPaymentId);
       await loadData();
       setDelPaymentId(null);
       setDelPaymentConfirm(false);
@@ -378,152 +345,118 @@ export default function JewelLoans() {
               <div style={{ fontSize: 14, fontWeight: 600, margin: 0, color: 'var(--text)' }}>Metrics</div>
             </div>
 
-        {/* KPI Cards */}
-        <div className="kpis" style={{ marginBottom: '1.5rem' }}>
-          <div className="kpi">
-            <div className="kpi-l">Total Principal</div>
-            <div className="kpi-v">{INR(totalPrincipal)}</div>
-          </div>
+            {/* KPI Cards */}
+            <div className="kpis" style={{ marginBottom: '1.5rem' }}>
+              <div className="kpi">
+                <div className="kpi-l">Total Received</div>
+                <div className="kpi-v">{INR(totalReceived)}</div>
+              </div>
 
-          <div className="kpi">
-            <div className="kpi-l">Total Paid</div>
-            <div className="kpi-v" style={{ color: '#10B981' }}>{INR(totalPaid)}</div>
-          </div>
+              <div className="kpi">
+                <div className="kpi-l">Total Paid</div>
+                <div className="kpi-v" style={{ color: '#10B981' }}>{INR(totalPaid)}</div>
+              </div>
 
-          <div className="kpi">
-            <div className="kpi-l">Total Outstanding</div>
-            <div className="kpi-v" style={{ color: '#EF4444' }}>{INR(totalOutstanding)}</div>
-          </div>
-        </div>
-
-        {/* Loans Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', marginTop: '2rem' }}>
-          <CreditCard size={20} style={{ color: 'var(--text)' }} />
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Loans</div>
-        </div>
-
-        {/* Loans Section */}
-        <div style={{ marginTop: 0 }}>
-          {loading && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2rem 0', color: 'var(--muted)', fontSize: 14 }}>
-              <Loader2 size={16} className="spin-icon" /> Loading…
+              <div className="kpi">
+                <div className="kpi-l">Total Outstanding</div>
+                <div className="kpi-v" style={{ color: '#EF4444' }}>{INR(totalOutstanding)}</div>
+              </div>
             </div>
-          )}
 
-          {!loading && error && (
-            <p style={{ color: '#EF4444', fontSize: 13, padding: '12px 10px', marginTop: 12 }}>
-              ⚠ {error}
-            </p>
-          )}
-
-          {!loading && loans.length === 0 && (
-            <p style={{ color: 'var(--muted)', fontSize: 14, padding: '2rem 0', textAlign: 'center' }}>
-              No loans yet. Add one to get started.
-            </p>
-          )}
-
-          {!loading && loans.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem' }}>
-              {loans.map(loan => {
-                const interest = loan.principal * (loan.rate / 100);
-                const total_payable = loan.principal + interest;
-                const outstanding = total_payable - loan.paid_amount;
-
-                return (
-                  <div
-                    key={loan.id}
-                    className="card"
-                    style={{ padding: '16px', marginBottom: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}
-                  >
-                    {/* Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: 'pointer' }} onClick={() => openEditLoan(loan)}>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>
-                          {loan.name}
-                        </div>
-                        <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
-                          {loan.bank}
-                        </div>
-                      </div>
-                      <span className={`sbadge${loan.status === 'Ongoing' ? ' sbadge-green' : ' sbadge-gray'}`}>
-                        {loan.status}
-                      </span>
-                    </div>
-
-                    {/* Main Details Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
-                      <div>
-                        <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 4 }}>
-                          Principal
-                        </div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
-                          {INR(loan.principal)}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 4 }}>
-                          Interest
-                        </div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
-                          {INR(interest)}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 4 }}>
-                          Total Payable
-                        </div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
-                          {INR(total_payable)}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 4 }}>
-                          Outstanding
-                        </div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#EF4444' }}>
-                          {INR(outstanding)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Dates & Paid Amount */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
-                      <div>
-                        <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 4 }}>
-                          Start Date
-                        </div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
-                          {fmtDate(loan.start_date)}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 4 }}>
-                          End Date
-                        </div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
-                          {fmtDate(loan.end_date)}
-                        </div>
-                      </div>
-
-                      <div style={{ gridColumn: '1 / -1' }}>
-                        <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 4 }}>
-                          Total Paid
-                        </div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#10B981' }}>
-                          {INR(loan.paid_amount)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            {/* Loans Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', marginTop: '2rem' }}>
+              <CreditCard size={20} style={{ color: 'var(--text)' }} />
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Loans</div>
             </div>
-          )}
-        </div>
+
+            {/* Loans Section */}
+            <div style={{ marginTop: 0 }}>
+              {loading && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2rem 0', color: 'var(--muted)', fontSize: 14 }}>
+                  <Loader2 size={16} className="spin-icon" /> Loading…
+                </div>
+              )}
+
+              {!loading && error && (
+                <p style={{ color: '#EF4444', fontSize: 13, padding: '12px 10px', marginTop: 12 }}>
+                  ⚠ {error}
+                </p>
+              )}
+
+              {!loading && loans.length === 0 && (
+                <p style={{ color: 'var(--muted)', fontSize: 14, padding: '2rem 0', textAlign: 'center' }}>
+                  No loans yet. Add one to get started.
+                </p>
+              )}
+
+              {!loading && loans.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem' }}>
+                  {loans.map(loan => {
+                    const outstanding = loan.amount_received - loan.paid_amount;
+
+                    return (
+                      <div
+                        key={loan.id}
+                        className="card"
+                        style={{ padding: '16px', marginBottom: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}
+                      >
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: 'pointer' }} onClick={() => openEditLoan(loan)}>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>
+                              {loan.person_name}
+                            </div>
+                            <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
+                              Loan
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Main Details Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
+                          <div>
+                            <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 4 }}>
+                              Amount Received
+                            </div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
+                              {INR(loan.amount_received)}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 4 }}>
+                              Outstanding
+                            </div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: '#EF4444' }}>
+                              {INR(outstanding)}
+                            </div>
+                          </div>
+
+                          <div style={{ gridColumn: '1 / -1' }}>
+                            <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 4 }}>
+                              Total Paid
+                            </div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: '#10B981' }}>
+                              {INR(loan.paid_amount)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Date */}
+                        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 4 }}>
+                            Start Date
+                          </div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
+                            {fmtDate(loan.start_date)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </>
         )}
 
@@ -559,7 +492,7 @@ export default function JewelLoans() {
                         </div>
                         {loan && (
                           <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: '4px' }}>
-                            {loan.name}
+                            {loan.person_name}
                           </div>
                         )}
                         {payment.note && (
@@ -636,47 +569,24 @@ export default function JewelLoans() {
               )}
 
               <div className="form-row">
-                <label className="form-lbl">Loan Name *</label>
+                <label className="form-lbl">Person Name *</label>
                 <input
                   className="form-inp"
                   type="text"
-                  placeholder="e.g. Gold Loan"
-                  value={loanForm.name}
-                  onChange={e => setLoanField('name', e.target.value)}
+                  placeholder="e.g. Ravi"
+                  value={loanForm.person_name}
+                  onChange={e => setLoanField('person_name', e.target.value)}
                 />
               </div>
 
               <div className="form-row">
-                <label className="form-lbl">Bank/Lender *</label>
-                <input
-                  className="form-inp"
-                  type="text"
-                  placeholder="e.g. Muthoot, Manappuram"
-                  value={loanForm.bank}
-                  onChange={e => setLoanField('bank', e.target.value)}
-                />
-              </div>
-
-              <div className="form-row">
-                <label className="form-lbl">Principal Amount *</label>
+                <label className="form-lbl">Amount Received *</label>
                 <input
                   className="form-inp"
                   type="number"
                   placeholder="Amount"
-                  value={loanForm.principal}
-                  onChange={e => setLoanField('principal', e.target.value)}
-                />
-              </div>
-
-              <div className="form-row">
-                <label className="form-lbl">Interest Rate (%)</label>
-                <input
-                  className="form-inp"
-                  type="number"
-                  step="0.1"
-                  placeholder="Rate"
-                  value={loanForm.rate}
-                  onChange={e => setLoanField('rate', e.target.value)}
+                  value={loanForm.amount_received}
+                  onChange={e => setLoanField('amount_received', e.target.value)}
                 />
               </div>
 
@@ -687,16 +597,6 @@ export default function JewelLoans() {
                   type="date"
                   value={loanForm.start_date}
                   onChange={e => setLoanField('start_date', e.target.value)}
-                />
-              </div>
-
-              <div className="form-row">
-                <label className="form-lbl">End Date *</label>
-                <input
-                  className="form-inp"
-                  type="date"
-                  value={loanForm.end_date}
-                  onChange={e => setLoanField('end_date', e.target.value)}
                 />
               </div>
             </div>
@@ -732,7 +632,7 @@ export default function JewelLoans() {
                 <button
                   className="btn btn-sm btn-green"
                   onClick={saveLoan}
-                  disabled={saving || !loanForm.name.trim() || !loanForm.bank.trim() || !loanForm.principal}
+                  disabled={saving || !loanForm.person_name.trim() || !loanForm.amount_received}
                 >
                   {saving ? (
                     <>
@@ -821,7 +721,7 @@ export default function JewelLoans() {
                   <option value="">Select a loan</option>
                   {loans.map(loan => (
                     <option key={loan.id} value={loan.id}>
-                      {loan.name} ({loan.bank})
+                      {loan.person_name}
                     </option>
                   ))}
                 </select>

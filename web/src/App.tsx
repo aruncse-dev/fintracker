@@ -11,6 +11,7 @@ import Stocks from './pages/Stocks'
 import MutualFunds from './pages/MutualFunds'
 import EMI from './pages/EMI'
 import JewelLoans from './pages/JewelLoans'
+import CashLoans from './pages/CashLoans'
 import Settings from './pages/Settings'
 import { ALLOWED_EMAILS } from './constants'
 
@@ -54,6 +55,7 @@ function Inner() {
     if (module === 'mutualfunds') return 'Mutual Funds'
     if (module === 'emi') return 'EMI Loans'
     if (module === 'jewelLoans') return 'Jewel Loans'
+    if (module === 'cashLoans') return 'Cash Loans'
     if (module === 'settings') return 'Settings'
     return 'FinTracker'
   }
@@ -69,6 +71,7 @@ function Inner() {
       {module === 'mutualfunds' && <MutualFunds />}
       {module === 'emi'         && <EMI />}
       {module === 'jewelLoans'  && <JewelLoans />}
+      {module === 'cashLoans'   && <CashLoans />}
       {module === 'settings'    && <Settings />}
       <InstallBanner />
     </div>

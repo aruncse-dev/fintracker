@@ -141,6 +141,22 @@ export interface RawJewelLoanHistoryRow {
   note?: string;
 }
 
+export interface RawCashLoanRow {
+  id: string;
+  person_name: string;
+  amount_received: number | string;
+  start_date: string;
+  paid_amount: number | string;
+}
+
+export interface RawCashLoanHistoryRow {
+  id: string;
+  loan_id: string;
+  date: string;
+  amount: number | string;
+  note?: string;
+}
+
 export interface GoldSettings {
   goldRate: number;
   loansSpreadsheetId?: string;
@@ -199,6 +215,13 @@ export const api = {
   addJewelLoanHistory:    (p: Record<string, unknown>) => post<string>({ module: 'loans', action: 'addHistory', type: 'jewel', ...p }),
   updateJewelLoanHistory: (p: Record<string, unknown>) => post<boolean>({ module: 'loans', action: 'updateHistory', type: 'jewel', ...p }),
   deleteJewelLoanHistory: (id: string)                 => post<boolean>({ module: 'loans', action: 'deleteHistory', type: 'jewel', id }),
+  getCashLoans:          ()                            => get<RawCashLoanRow[]>('getEntries', { module: 'loans', type: 'cash' }),
+  addCashLoan:           (p: Record<string, unknown>) => post<string>({ module: 'loans', action: 'addEntry', type: 'cash', ...p }),
+  updateCashLoan:        (p: Record<string, unknown>) => post<boolean>({ module: 'loans', action: 'updateEntry', type: 'cash', ...p }),
+  deleteCashLoan:        (id: string)                 => post<boolean>({ module: 'loans', action: 'deleteEntry', type: 'cash', id }),
+  getCashLoanHistory:    ()                           => get<RawCashLoanHistoryRow[]>('getHistory', { module: 'loans', type: 'cash' }),
+  addCashLoanHistory:    (p: Record<string, unknown>) => post<string>({ module: 'loans', action: 'addHistory', type: 'cash', ...p }),
+  deleteCashLoanHistory: (id: string)                 => post<boolean>({ module: 'loans', action: 'deleteHistory', type: 'cash', id }),
   getSettings:   ()                            => get<GoldSettings>('get', { module: 'settings' }),
   saveSettings:  (p: Record<string, unknown>) => post<boolean>({ module: 'settings', action: 'save', ...p }),
   getTokenStatus: ()                           => get<{ hasToken: boolean }>('getTokenStatus', { module: 'stocks' }),
